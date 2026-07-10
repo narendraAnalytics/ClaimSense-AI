@@ -1,0 +1,14 @@
+from fastapi import APIRouter
+
+from app.api.v1 import health
+
+api_router = APIRouter()
+
+api_router.include_router(health.router)
+
+# Registered once implemented:
+# from app.api.v1 import upload, claims, documents, reports
+# api_router.include_router(claims.router)
+# api_router.include_router(documents.router)
+# api_router.include_router(reports.router)
+# api_router.include_router(upload.router)
