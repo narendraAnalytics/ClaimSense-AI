@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.api.deps import get_existing_claim
 from app.core.constants import ClaimStatus
 from app.models.claim import Claim
-from app.schemas.claim import CreateClaimRequest, CreateClaimResponse
+from app.schemas.claim import CreateClaimRequest, CreateClaimResponse, ProcessClaimResponse
+from app.services import workflow
 from app.services.claim_registry import add_claim
+from app.services.document_registry import get_documents_for_claim
 from app.utils.ids import generate_claim_id
 
 router = APIRouter(tags=["claims"])
@@ -30,9 +33,42 @@ def create_claim(request: CreateClaimRequest) -> CreateClaimResponse:
     )
     add_claim(claim)
 
+    # No documents exist yet at creation time — upload happens afterward.
+    # This still proves the orchestration mechanics: Intake -> Supervisor -> Policy.
+    result = workflow.start_workflow(claim, documents=[])
+    claim.status = result["status"]
+    claim.updated_at = result["updated_at"]
+
     return CreateClaimResponse(
         claim_id=claim.claim_id,
         status=claim.status,
         created_at=claim.created_at,
-        message="Claim created successfully",
+        message=f"Claim created; workflow reached: {' -> '.join(result['workflow_history'])}",
+    )
+
+
+@router.post("/claims/{claim_id}/process", response_model=ProcessClaimResponse)
+def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimResponse:
+    documents = get_documents_for_claim(claim.claim_id)
+
+    # No graph-level persistence yet, so there's no genuine prior run to
+    # pass in here — resume_workflow() re-initializes from scratch. Once
+    # checkpointing exists, `previous_state` would come from a real saved run.
+    result = workflow.resume_workflow(claim, documents)
+
+    claim.status = result["status"]
+    claim.updated_at = result["updated_at"]
+
+    message = (
+        "Claim processing pipeline completed"
+        if not result["errors"]
+        else "Claim processing halted: " + "; ".join(result["errors"])
+    )
+
+    return ProcessClaimResponse(
+        claim_id=claim.claim_id,
+        status=claim.status,
+        workflow_history=result["workflow_history"],
+        errors=result["errors"],
+        message=message,
     )

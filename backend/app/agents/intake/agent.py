@@ -1,0 +1,23 @@
+from datetime import datetime, timezone
+
+from app.graph.state import ClaimState
+from app.models.claim import Claim
+from app.models.document import Document
+
+
+def initialize_claim_state(claim: Claim, documents: list[Document]) -> ClaimState:
+    now = datetime.now(timezone.utc)
+    return ClaimState(
+        claim_id=claim.claim_id,
+        claim=claim,
+        status=claim.status,
+        documents=documents,
+        current_agent="intake",
+        next_agent="supervisor",
+        messages=[],
+        errors=[],
+        metadata={},
+        workflow_history=["intake"],
+        started_at=now,
+        updated_at=now,
+    )

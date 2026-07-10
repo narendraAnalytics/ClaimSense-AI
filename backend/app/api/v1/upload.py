@@ -9,6 +9,7 @@ from app.models.document import Document
 from app.schemas.upload import UploadedDocument, UploadError, UploadResponse
 from app.services import storage
 from app.services.claim_registry import attach_document
+from app.services.document_registry import add_document
 
 router = APIRouter(tags=["upload"])
 
@@ -52,6 +53,7 @@ async def upload_documents(
             storage_path=str(path),
             uploaded_at=metadata["uploaded_at"],
         )
+        add_document(document)
         attach_document(claim.claim_id, document.document_id)
 
         uploaded.append(

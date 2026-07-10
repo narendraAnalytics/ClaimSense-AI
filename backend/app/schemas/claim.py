@@ -36,3 +36,11 @@ class ClaimDetails(ClaimSummary):
     incident_description: str
     documents: list[DocumentMetadata]
     updated_at: datetime
+
+
+class ProcessClaimResponse(BaseModel):
+    claim_id: str
+    status: ClaimStatus
+    workflow_history: list[str]
+    errors: list[str]
+    message: str
