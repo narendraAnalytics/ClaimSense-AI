@@ -4,7 +4,13 @@ from pathlib import Path
 from fastapi import UploadFile
 
 from app.core.config import settings
-from app.utils.files import allowed_extension, allowed_mime, calculate_file_size, safe_filename
+from app.utils.files import (
+    allowed_extension,
+    allowed_mime,
+    calculate_file_size,
+    safe_filename,
+    sniff_mime_type,
+)
 from app.utils.ids import generate_document_id
 
 
@@ -17,6 +23,11 @@ def validate_file(upload_file: UploadFile) -> None:
         raise FileValidationError(f"Unsupported file extension for '{upload_file.filename}'")
     if not allowed_mime(upload_file.content_type):
         raise FileValidationError(f"Unsupported content type '{upload_file.content_type}'")
+    sniffed = sniff_mime_type(upload_file)
+    if sniffed is None or sniffed != upload_file.content_type:
+        raise FileValidationError(
+            f"File '{upload_file.filename}' content does not match its declared type"
+        )
     size = calculate_file_size(upload_file)
     if size > settings.max_upload_size_bytes:
         raise FileValidationError(

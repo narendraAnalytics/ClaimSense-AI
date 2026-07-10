@@ -11,32 +11,34 @@ Guidance for Claude Code when working in this directory. See the repo-root `CLAU
 - Sarvam AI (Sarvam-30B reasoning, Sarvam Vision OCR) as the LLM provider — OpenAI-compatible API, called via `httpx`/LangChain, not a dedicated SDK
 - loguru for logging
 
-Run commands: `uv sync` to install deps, `uv run <script>` to execute within the venv. No dev server or CLI entrypoint is wired up yet (Phase 3).
+Run commands: `uv sync` to install deps, `uv run uvicorn app.main:app --reload` to run the dev server (`/health`, `/docs`, `/redoc` all live at that point).
 
 ## Current state
-**Structure-only scaffold. No business logic exists yet.** `app/` was created in Phase 2 per `../projectfolder.txt` — every `.py` file under `app/` is an empty stub, every `.md` prompt file is empty. Do not assume any route, agent, or service does anything until you've checked — grep before relying on behavior.
+Phases 3 and 4 (of `../projectfolder.txt`) are implemented and pushed:
+- **Phase 3** — `app/main.py` (FastAPI app + CORS + lifespan logging), `app/core/config.py` (`Settings` via Pydantic Settings), `app/core/logger.py` (loguru), `app/core/constants.py` (enums), `app/core/exceptions.py`, `app/api/v1/health.py`, `app/api/router.py`.
+- **Phase 4** — claim intake: `app/schemas/claim.py`, `app/schemas/upload.py`, `app/schemas/document.py`, `app/models/claim.py`, `app/models/document.py`, `app/services/storage.py` (local-disk file validation/save, `uploads/temp/`), `app/services/claim_registry.py` (in-memory claim store), `app/api/deps.py`, `app/api/v1/claims.py` (`POST /claims`), `app/api/v1/upload.py` (`POST /claims/{claim_id}/upload`).
 
-Phase 3 (not started) wires up: FastAPI app init in `app/main.py`, `app/core/config.py` (Pydantic Settings), `app/core/logger.py`, a health check route, and `app/api/router.py` registration.
+Still empty stubs / not started: `app/agents/`, `app/graph/`, `app/services/{parser,sarvam,embeddings,search,report_generator}.py`, `app/schemas/{billing,medical,policy,report}.py`, `app/models/report.py`, `app/utils/{helpers,validators}.py`, `app/api/v1/{documents,reports}.py`, all `app/prompts/*.md`. No Convex/DB persistence, no Sarvam calls, no LangGraph, no OCR — claim/document state lives only in an in-memory dict and resets on restart. Don't assume anything beyond what's listed above does something — grep before relying on behavior.
 
 ## Folder structure and responsibilities
 ```
 app/
-├── main.py            FastAPI app entrypoint
+├── main.py            FastAPI app entrypoint — implemented
 ├── api/                API layer — routes only, no business logic
-│   ├── deps.py         shared FastAPI dependencies
-│   ├── router.py       aggregates and registers v1 routers
-│   └── v1/             versioned routes: claims, documents, reports, health, upload
-├── agents/             one self-contained folder per LangGraph agent
+│   ├── deps.py         shared FastAPI dependencies — implemented (get_existing_claim)
+│   ├── router.py       aggregates and registers v1 routers — implemented
+│   └── v1/             claims.py, upload.py, health.py implemented; documents.py, reports.py still stub
+├── agents/             one self-contained folder per LangGraph agent — all stub, not started
 │   └── <name>/          __init__.py, agent.py (logic), prompt.py (prompt loading)
 │       intake, policy, document, medical, billing, fraud, history, settlement, report, supervisor
-├── core/                config, constants, logging, exceptions, security — cross-cutting
-├── graph/               LangGraph wiring: builder.py, nodes.py, edges.py, state.py
-├── models/              domain models (claim, document, report)
-├── schemas/             Pydantic request/response schemas (claim, upload, policy, billing, medical, report)
-├── services/             external integrations: sarvam.py, storage.py, parser.py, embeddings.py, search.py, report_generator.py
-├── prompts/              versioned LLM prompts as .md files (one per agent, excluding history/supervisor)
-└── utils/                shared helpers: files, helpers, validators, ids
-tests/                    at backend/ root, not under app/
+├── core/                config.py, constants.py, logger.py, exceptions.py implemented; security.py placeholder-only
+├── graph/               LangGraph wiring: builder.py, nodes.py, edges.py, state.py — all stub, not started
+├── models/              claim.py, document.py implemented; report.py still stub
+├── schemas/             claim.py, upload.py, document.py implemented; billing.py, medical.py, policy.py, report.py still stub
+├── services/             storage.py, claim_registry.py implemented (local-disk, in-memory); sarvam.py, parser.py, embeddings.py, search.py, report_generator.py still stub
+├── prompts/              versioned LLM prompts as .md files — all empty, not started
+└── utils/                files.py, ids.py implemented; helpers.py, validators.py still stub
+tests/                    at backend/ root, not under app/ — no tests written yet
 ```
 
 ## Conventions

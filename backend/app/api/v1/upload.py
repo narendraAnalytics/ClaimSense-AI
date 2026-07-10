@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from app.api.deps import get_existing_claim
+from app.api.deps import enforce_max_request_size, get_existing_claim
 from app.core.constants import ClaimStatus, DocumentType
 from app.models.claim import Claim
 from app.models.document import Document
@@ -13,7 +13,15 @@ from app.services.claim_registry import attach_document
 router = APIRouter(tags=["upload"])
 
 
-@router.post("/claims/{claim_id}/upload", response_model=UploadResponse)
+# No caller/ownership check yet — any client that knows a claim_id can
+# upload documents to it. `app/core/security.py` is a deliberate placeholder
+# until JWT/API-key auth lands in a later phase (see projectfolder.txt Phase
+# 4 Step 6); until then, treat this endpoint as unauthenticated by design.
+@router.post(
+    "/claims/{claim_id}/upload",
+    response_model=UploadResponse,
+    dependencies=[Depends(enforce_max_request_size)],
+)
 async def upload_documents(
     files: list[UploadFile] = File(...),
     document_type: DocumentType = Form(DocumentType.OTHER),

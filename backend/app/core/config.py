@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads/temp"
     max_upload_size_mb: int = 25
     allowed_upload_mime_types: str = "image/jpeg,image/png,image/webp,application/pdf"
+    # Whole-request cap (multiple files per upload call) checked via
+    # Content-Length before the multipart body is parsed/buffered.
+    max_request_size_mb: int = 100
 
     @property
     def allowed_origins_list(self) -> list[str]:
@@ -38,6 +41,10 @@ class Settings(BaseSettings):
     @property
     def max_upload_size_bytes(self) -> int:
         return self.max_upload_size_mb * 1024 * 1024
+
+    @property
+    def max_request_size_bytes(self) -> int:
+        return self.max_request_size_mb * 1024 * 1024
 
     @property
     def allowed_mime_types_list(self) -> list[str]:
