@@ -10,19 +10,28 @@ SUPPORTED_PDF_TYPES = ("application/pdf",)
 
 
 class ClaimStatus(str, Enum):
-    SUBMITTED = "submitted"
-    IN_REVIEW = "in_review"
+    NEW = "new"
+    UPLOADING = "uploading"
+    DOCUMENTS_RECEIVED = "documents_received"
+    VALIDATING = "validating"
+    PROCESSING = "processing"
+    UNDER_REVIEW = "under_review"
     APPROVED = "approved"
     REJECTED = "rejected"
-    SETTLED = "settled"
+    FAILED = "failed"
 
 
 class DocumentType(str, Enum):
     POLICY = "policy"
-    MEDICAL_RECORD = "medical_record"
-    BILL = "bill"
-    ID_PROOF = "id_proof"
-    EVIDENCE_PHOTO = "evidence_photo"
+    HOSPITAL_BILL = "hospital_bill"
+    DISCHARGE_SUMMARY = "discharge_summary"
+    LAB_REPORT = "lab_report"
+    PRESCRIPTION = "prescription"
+    MEDICAL_CERTIFICATE = "medical_certificate"
+    FIR = "fir"
+    ACCIDENT_REPORT = "accident_report"
+    PHOTO = "photo"
+    VIDEO = "video"
     OTHER = "other"
 
 

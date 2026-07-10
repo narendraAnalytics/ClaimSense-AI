@@ -47,6 +47,7 @@ tests/                    at backend/ root, not under app/
   - `SARVAM_API_KEY` — Sarvam AI (reasoning + OCR)
   - `CONVEX_URL`, `CONVEX_DEPLOY_KEY` — Convex DB/backend
   - `QDRANT_API_KEY`, `QDRANT_URL` — Qdrant vector search
+  - `UPLOADTHING_TOKEN` — UploadThing storage; present in `Settings` but **not wired up yet** — Phase 4 upload endpoint stores files to a local `uploads/temp/` dir, not UploadThing. Will be integrated in a later storage-migration phase.
   Add new secrets to both `.env.example` (blank) and document them here + in `README.md`.
 
 ## MCP servers available (this machine only)

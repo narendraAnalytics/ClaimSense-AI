@@ -1,0 +1,38 @@
+from datetime import date, datetime
+
+from pydantic import BaseModel
+
+from app.core.constants import ClaimStatus
+from app.schemas.document import DocumentMetadata
+
+
+class CreateClaimRequest(BaseModel):
+    policy_number: str
+    claimant_name: str
+    claim_type: str
+    incident_date: date
+    incident_description: str
+
+
+class CreateClaimResponse(BaseModel):
+    claim_id: str
+    status: ClaimStatus
+    created_at: datetime
+    message: str
+
+
+class ClaimSummary(BaseModel):
+    claim_id: str
+    policy_number: str
+    claimant_name: str
+    status: ClaimStatus
+    created_at: datetime
+    document_count: int
+
+
+class ClaimDetails(ClaimSummary):
+    claim_type: str
+    incident_date: date
+    incident_description: str
+    documents: list[DocumentMetadata]
+    updated_at: datetime
