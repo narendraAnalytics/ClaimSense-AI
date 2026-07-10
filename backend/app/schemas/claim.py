@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.core.constants import ClaimStatus
+from app.core.constants import ClaimStatus, DocumentStatus
 from app.schemas.document import DocumentMetadata
 
 
@@ -42,5 +42,7 @@ class ProcessClaimResponse(BaseModel):
     claim_id: str
     status: ClaimStatus
     workflow_history: list[str]
+    document_status: DocumentStatus
+    document_summary: dict
     errors: list[str]
     message: str

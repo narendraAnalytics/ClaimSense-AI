@@ -69,6 +69,8 @@ def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimRes
         claim_id=claim.claim_id,
         status=claim.status,
         workflow_history=result["workflow_history"],
+        document_status=result["document_status"],
+        document_summary=result["document_summary"],
         errors=result["errors"],
         message=message,
     )

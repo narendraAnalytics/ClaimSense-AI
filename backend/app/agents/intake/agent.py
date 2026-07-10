@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.core.constants import DocumentStatus
 from app.graph.state import ClaimState
 from app.models.claim import Claim
 from app.models.document import Document
@@ -12,8 +13,11 @@ def initialize_claim_state(claim: Claim, documents: list[Document]) -> ClaimStat
         claim=claim,
         status=claim.status,
         documents=documents,
+        parsed_documents=[],
+        document_summary={},
+        document_status=DocumentStatus.PENDING,
         current_agent="intake",
-        next_agent="supervisor",
+        next_agent="document",
         messages=[],
         errors=[],
         metadata={},

@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000"
 
     sarvam_api_key: str = ""
+    sarvam_base_url: str = "https://api.sarvam.ai"
+    sarvam_vision_language: str = "en-IN"
+    # Sarvam's job API only accepts "html" or "md" for job_parameters.output_format
+    # (confirmed against the live API — "json" is rejected at job creation) — the
+    # per-page JSON in metadata/page_*.json is always included in the output ZIP
+    # regardless of this setting.
+    sarvam_vision_output_format: str = "md"
+    sarvam_poll_interval_seconds: float = 3.0
+    sarvam_poll_timeout_seconds: float = 180.0
     convex_url: str = ""
     convex_deploy_key: str = ""
     qdrant_api_key: str = ""

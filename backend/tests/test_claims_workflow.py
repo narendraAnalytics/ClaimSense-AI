@@ -13,14 +13,14 @@ CLAIM_PAYLOAD = {
 }
 
 
-def test_create_claim_runs_phase5_orchestration():
+def test_create_claim_runs_orchestration():
     response = client.post("/api/v1/claims", json=CLAIM_PAYLOAD)
 
     assert response.status_code == 200
     body = response.json()
     assert body["claim_id"]
     assert body["status"] == "processing"
-    assert "intake -> supervisor -> policy" in body["message"]
+    assert "intake -> document -> supervisor -> policy" in body["message"]
 
 
 def test_process_claim_completes_full_workflow_history():
@@ -33,7 +33,10 @@ def test_process_claim_completes_full_workflow_history():
     body = process_response.json()
     assert body["claim_id"] == claim_id
     assert body["status"] == "processing"
-    assert body["workflow_history"] == ["intake", "supervisor", "policy"]
+    assert body["workflow_history"] == ["intake", "document", "supervisor", "policy"]
+    # No documents attached in this test, so the document stage has nothing
+    # to OCR and short-circuits without calling Sarvam.
+    assert body["document_status"] == "parsed"
     assert body["errors"] == []
 
 

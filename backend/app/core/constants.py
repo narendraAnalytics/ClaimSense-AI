@@ -35,6 +35,14 @@ class DocumentType(str, Enum):
     OTHER = "other"
 
 
+class DocumentStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    PARSED = "parsed"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
 class FraudLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
@@ -50,5 +58,6 @@ class ReportStatus(str, Enum):
 
 CLAIM_STATUS = ClaimStatus
 DOCUMENT_TYPES = DocumentType
+DOCUMENT_STATUS = DocumentStatus
 FRAUD_LEVELS = FraudLevel
 REPORT_STATUS = ReportStatus
