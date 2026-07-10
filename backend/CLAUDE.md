@@ -43,4 +43,14 @@ tests/                    at backend/ root, not under app/
 - Agent folders stay self-contained: `__init__.py`, `agent.py`, `prompt.py` — an agent's logic and prompt live together, not scattered.
 - Keep prompts in `app/prompts/*.md`, not inlined in Python — they should be reviewable/versionable independently of code.
 - Routes in `app/api/v1/` should stay thin; put logic in `app/services/` or `app/agents/`, not in route handlers.
-- `SARVAM_API_KEY` is the only env var currently defined (see `.env.example`). Add new secrets to both `.env.example` (blank) and document them in `README.md`.
+- Env vars currently defined (see `.env.example`, real values in `.env` which is gitignored):
+  - `SARVAM_API_KEY` — Sarvam AI (reasoning + OCR)
+  - `CONVEX_URL`, `CONVEX_DEPLOY_KEY` — Convex DB/backend
+  - `QDRANT_API_KEY`, `QDRANT_URL` — Qdrant vector search
+  Add new secrets to both `.env.example` (blank) and document them here + in `README.md`.
+
+## MCP servers available (this machine only)
+Registered locally with Claude Code (`--scope local`, private to this project/machine, not committed to git — check with `claude mcp list`):
+- **`sarvam`** (`uvx sarvam-mcp`) — connected. Sarvam AI tools available directly in Claude Code sessions.
+- **`convex`** (`cmd /c npx -y convex@latest mcp start`) — connected, authenticated with a **`prod:`** deploy key (`prod:ceaseless-sparrow-692`). This talks to the **production** Convex deployment, not a dev sandbox — be careful with any tool that writes data.
+- **Qdrant has no MCP server registered.** Credentials exist (`QDRANT_API_KEY`, `QDRANT_URL`) but Qdrant access today is only via the `qdrant-client` Python SDK, and that SDK isn't installed or wired into `app/services/` yet either — don't assume Qdrant is reachable from Claude Code or from the app until that's actually built.
