@@ -48,5 +48,16 @@ class ProcessClaimResponse(BaseModel):
     policy_status: str | None = None
     medical_result: dict | None = None
     medical_status: str | None = None
+    billing_result: dict | None = None
+    billing_status: str | None = None
+    fraud_result: dict | None = None
+    fraud_status: str | None = None
+    historical_result: dict | None = None
+    historical_status: str | None = None
+    settlement_result: dict | None = None
+    settlement_status: str | None = None
+    report_result: dict | None = None
+    report_status: str | None = None
+    report_url: str | None = None
     errors: list[str]
     message: str

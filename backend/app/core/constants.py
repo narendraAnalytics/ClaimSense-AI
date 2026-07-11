@@ -71,6 +71,32 @@ class ReportStatus(str, Enum):
     FAILED = "failed"
 
 
+class BillingValidationStatus(str, Enum):
+    VALIDATED = "validated"
+    PARTIALLY_PAYABLE = "partially_payable"
+    NOT_PAYABLE = "not_payable"
+    NO_DOCUMENT = "no_document"
+    FAILED = "failed"
+
+
+class FraudAssessmentStatus(str, Enum):
+    ASSESSED = "assessed"
+    NO_DATA = "no_data"
+    FAILED = "failed"
+
+
+class HistoryStatus(str, Enum):
+    FOUND = "found"
+    NOT_FOUND = "not_found"
+    FAILED = "failed"
+
+
+class SettlementDecision(str, Enum):
+    APPROVE = "approve"
+    REJECT = "reject"
+    NEED_REVIEW = "need_review"
+
+
 CLAIM_STATUS = ClaimStatus
 DOCUMENT_TYPES = DocumentType
 DOCUMENT_STATUS = DocumentStatus

@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 
 from app.api.deps import get_existing_claim
 from app.core.constants import ClaimStatus
@@ -9,6 +11,7 @@ from app.schemas.claim import CreateClaimRequest, CreateClaimResponse, ProcessCl
 from app.services import workflow
 from app.services.claim_registry import add_claim
 from app.services.document_registry import get_documents_for_claim
+from app.services.report_generator import REPORTS_DIR
 from app.utils.ids import generate_claim_id
 
 router = APIRouter(tags=["claims"])
@@ -69,6 +72,16 @@ def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimRes
     policy_status = result.get("policy_status")
     medical_result = result.get("medical_result")
     medical_status = result.get("medical_status")
+    billing_result = result.get("billing_result")
+    billing_status = result.get("billing_status")
+    fraud_result = result.get("fraud_result")
+    fraud_status = result.get("fraud_status")
+    historical_result = result.get("historical_result")
+    historical_status = result.get("historical_status")
+    settlement_result = result.get("settlement_result")
+    settlement_status = result.get("settlement_status")
+    report_result = result.get("report_result")
+    report_status = result.get("report_status")
 
     return ProcessClaimResponse(
         claim_id=claim.claim_id,
@@ -80,6 +93,37 @@ def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimRes
         policy_status=policy_status.value if policy_status else None,
         medical_result=medical_result.model_dump(mode="json") if medical_result else None,
         medical_status=medical_status.value if medical_status else None,
+        billing_result=billing_result.model_dump(mode="json") if billing_result else None,
+        billing_status=billing_status.value if billing_status else None,
+        fraud_result=fraud_result.model_dump(mode="json") if fraud_result else None,
+        fraud_status=fraud_status.value if fraud_status else None,
+        historical_result=historical_result.model_dump(mode="json") if historical_result else None,
+        historical_status=historical_status.value if historical_status else None,
+        settlement_result=settlement_result.model_dump(mode="json") if settlement_result else None,
+        settlement_status=settlement_status.value if settlement_status else None,
+        report_result=report_result.model_dump(mode="json") if report_result else None,
+        report_status=report_status.value if report_status else None,
+        report_url=result.get("report_url"),
         errors=result["errors"],
         message=message,
+    )
+
+
+@router.get("/claims/{claim_id}/report")
+def download_report(claim: Claim = Depends(get_existing_claim)) -> FileResponse:
+    # Reads the PDF the Report agent already wrote to disk during a prior
+    # POST /process call, using report_generator's deterministic naming
+    # convention — deliberately does NOT re-run the graph (that would
+    # re-spend real Sarvam credits on every download, same reasoning as
+    # why there's no checkpointing yet, see backend/CLAUDE.md).
+    report_path = REPORTS_DIR / f"{claim.claim_id}.pdf"
+    if not report_path.exists():
+        raise HTTPException(
+            status_code=404, detail="Report not yet generated for this claim — call /process first"
+        )
+
+    return FileResponse(
+        path=str(report_path),
+        media_type="application/pdf",
+        filename=f"{claim.claim_id}_report.pdf",
     )

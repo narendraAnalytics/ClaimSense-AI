@@ -37,7 +37,18 @@ def test_policy_agent_extracts_real_policy_document():
     assert process_response.status_code == 200
     body = process_response.json()
 
-    assert body["workflow_history"] == ["intake", "document", "supervisor", "policy", "medical"]
+    assert body["workflow_history"] == [
+        "intake",
+        "document",
+        "supervisor",
+        "policy",
+        "medical",
+        "billing",
+        "fraud",
+        "history",
+        "settlement",
+        "report",
+    ]
     assert body["policy_status"] == "extracted"
 
     policy = body["policy_result"]
