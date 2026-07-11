@@ -69,10 +69,24 @@ def test_full_claim_pipeline_completes_all_nine_agents():
     fraud = body["fraud_result"]
     assert fraud is not None
     assert 0 <= fraud["fraud_score"] <= 100
+    # The fixture claim's own narrative ("appendicitis surgery") doesn't
+    # match the real medical documents (dengue fever) — this is a known,
+    # deliberate mismatch in the test data used to verify Fraud actually
+    # catches it: narrative_medical_consistency must come back false, the
+    # score must be forced to at least the enforced floor (see
+    # app/services/fraud.py::_NARRATIVE_MISMATCH_FRAUD_FLOOR), and a
+    # narrative-mismatch red flag must be present.
+    assert fraud["narrative_medical_consistency"] is False
+    assert fraud["fraud_score"] >= 50
+    assert any("narrative" in flag.lower() for flag in fraud["red_flags"])
 
     settlement = body["settlement_result"]
     assert settlement is not None
     assert settlement["approval_status"] in ("approve", "reject", "need_review")
+    # A fraud score >= 50 lands in Settlement's existing need_review band
+    # (30 <= fraud_score < 70) — confirms the fraud fix actually changes
+    # the downstream settlement decision, not just an isolated field.
+    assert settlement["approval_status"] == "need_review"
 
     report = body["report_result"]
     assert report is not None

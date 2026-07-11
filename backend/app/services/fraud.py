@@ -55,6 +55,12 @@ _REPAIR_REMINDER = (
 
 _SUPPORTING_DOCUMENT_TYPES = {DocumentType.HOSPITAL_BILL.value, DocumentType.DISCHARGE_SUMMARY.value}
 
+# Enforced floor when narrative_medical_consistency is False — see
+# convert_to_model(). Matches Settlement's existing 30-69 "need_review"
+# band, so a narrative mismatch alone is enough to force a review without
+# needing additional red flags to reach that threshold.
+_NARRATIVE_MISMATCH_FRAUD_FLOOR = 50
+
 
 class FraudServiceError(Exception):
     pass
@@ -154,13 +160,32 @@ def validate_response(raw_content: str | None, messages: list[dict]) -> dict:
 
 def convert_to_model(parsed: dict, claim: Claim) -> FraudResult:
     score = int(parsed.get("fraud_score", 0))
+    red_flags = list(parsed.get("red_flags", []))
+    narrative_consistent = parsed.get("narrative_medical_consistency")
+
+    # Enforce the consequence of the model's own narrative-mismatch
+    # judgment deterministically — don't trust the model's self-reported
+    # score for this specific high-signal case, same rationale as
+    # deriving fraud_level from fraud_score below rather than trusting a
+    # model-authored level. Live testing showed the model can correctly
+    # narrate a narrative/evidence mismatch in `reasoning` while still
+    # under-scoring it in the structured fields; this is a backstop for
+    # that failure mode, not a replacement for the prompt asking for it.
+    if narrative_consistent is False:
+        score = max(score, _NARRATIVE_MISMATCH_FRAUD_FLOOR)
+        if not any("narrative" in flag.lower() for flag in red_flags):
+            red_flags.append(
+                "Claim's stated incident does not match the medical evidence "
+                "(narrative_medical_consistency=false)"
+            )
+
     try:
         return FraudResult(
             claim_id=claim.claim_id,
             fraud_score=score,
             fraud_level=_fraud_level(score),
-            red_flags=parsed.get("red_flags", []),
-            narrative_medical_consistency=parsed.get("narrative_medical_consistency"),
+            red_flags=red_flags,
+            narrative_medical_consistency=narrative_consistent,
             duplicate_invoice_suspected=parsed.get("duplicate_invoice_suspected", False),
             altered_document_suspected=parsed.get("altered_document_suspected", False),
             suspicious_timing=parsed.get("suspicious_timing", False),

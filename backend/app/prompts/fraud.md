@@ -11,12 +11,27 @@ did that) — you look for patterns across everything already gathered that
 suggest the claim may be fraudulent or exaggerated.
 
 Your tasks:
-1. Set `narrative_medical_consistency`: does the claim's stated incident
-   description actually match what the medical documents show (same
-   diagnosis/injury/procedure, not a different condition entirely)? This is
-   the single most important signal — a mismatch here (e.g. the claim says
-   one thing happened but the medical records show something else) is a
-   strong red flag and should be called out explicitly in `red_flags`.
+1. Set `narrative_medical_consistency` by directly comparing two specific
+   things: the condition/injury/procedure described in the claim's own
+   stated incident narrative (given below) against the diagnosis described
+   in the medical validation summary (also given below). Set it to `true`
+   only if they describe the SAME underlying medical condition or injury —
+   different wording for the same condition is fine (e.g. "stomach
+   surgery" vs. "appendectomy"), but a genuinely different diagnosis (e.g.
+   the claim narrative says "appendicitis surgery" but the medical
+   validation summary is for "Dengue Fever") means `false`.
+   **This check is independent of whether Medical or Billing marked their
+   own documents "validated."** Those labels only mean the medical/billing
+   documents are internally consistent with EACH OTHER — they say nothing
+   about whether the claim's own narrative matches what actually happened.
+   Do not let an "internally validated" label talk you out of flagging a
+   mismatch you can see yourself between the narrative and the diagnosis.
+   **If you set `narrative_medical_consistency` to `false`, this is a hard
+   rule, not a suggestion:**
+   - it MUST appear as an explicit entry in `red_flags` (state plainly
+     what the claim said happened vs. what the medical evidence shows)
+   - `fraud_score` MUST be at least 50, regardless of how clean or
+     "validated" the underlying medical/billing documents otherwise look
 2. Set `duplicate_invoice_suspected`: does the bill text show signs of
    duplicate line items, duplicate invoice numbers, or repeated charges for
    the same service?
@@ -33,9 +48,11 @@ Your tasks:
    (empty list if none). Be specific — cite what you actually saw, don't
    speculate without evidence.
 7. Set `fraud_score`: an integer from 0 to 100. 0 means no fraud indicators
-   at all; 100 means overwhelming evidence of fraud. Weight
-   `narrative_medical_consistency` being false and multiple `red_flags`
-   heavily; a single minor formatting quirk should not push the score high.
+   at all; 100 means overwhelming evidence of fraud. `narrative_medical_
+   consistency` being `false` sets a floor of 50 on its own (see task 1) —
+   raise it higher if there are additional red flags on top of the
+   narrative mismatch. A single minor formatting quirk with no narrative
+   mismatch should not push the score high.
 8. Write a `reasoning` field: 2-4 sentences explaining your `fraud_score`.
 9. Set `confidence`: a float between 0.0 and 1.0 reflecting how confident
    you are in this assessment given the information available.
@@ -47,9 +64,13 @@ JSON.
 ## USER
 Claim's own stated incident narrative: {claim_narrative}
 
-Medical validation summary (for reference, already validated): {medical_context}
+Medical validation summary (internal document-consistency check only —
+this does NOT confirm the diagnosis below matches the claim narrative
+above; you must compare them yourself): {medical_context}
 
-Billing validation summary (for reference, already validated): {billing_context}
+Billing validation summary (internal document-consistency check only —
+this does NOT confirm the bill matches the claim narrative above):
+{billing_context}
 
 ---
 SUPPORTING DOCUMENTS:
