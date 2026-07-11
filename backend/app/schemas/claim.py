@@ -46,5 +46,7 @@ class ProcessClaimResponse(BaseModel):
     document_summary: dict
     policy_result: dict | None = None
     policy_status: str | None = None
+    medical_result: dict | None = None
+    medical_status: str | None = None
     errors: list[str]
     message: str

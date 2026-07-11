@@ -11,15 +11,21 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 CLAIM_PAYLOAD = {
     "policy_number": "BF-HEALTH-2026",
-    "claimant_name": "Priya Sharma",
+    "claimant_name": "Rajesh Kumar",
     "claim_type": "health",
     "incident_date": "2026-06-01",
     "incident_description": "Hospitalized for appendicitis surgery.",
 }
 
+MEDICAL_UPLOADS = [
+    ("Discharge_Summary_Rajesh_Kumar.pdf", "discharge_summary"),
+    ("NewLife_Hospital_Prescription_Rajesh_Kumar.pdf", "prescription"),
+    ("NewLife_Hospital_Lab_Report_Rajesh_Kumar.pdf", "lab_report"),
+]
+
 
 @pytest.mark.skipif(not settings.sarvam_api_key, reason="requires SARVAM_API_KEY")
-def test_policy_agent_extracts_real_policy_document():
+def test_medical_agent_validates_real_medical_documents():
     create_response = client.post("/api/v1/claims", json=CLAIM_PAYLOAD)
     claim_id = create_response.json()["claim_id"]
 
@@ -30,7 +36,16 @@ def test_policy_agent_extracts_real_policy_document():
             data={"document_type": "policy"},
         )
     assert upload_response.status_code == 200
-    assert upload_response.json()["uploaded"]
+
+    for filename, document_type in MEDICAL_UPLOADS:
+        with open(FIXTURES_DIR / filename, "rb") as pdf_file:
+            upload_response = client.post(
+                f"/api/v1/claims/{claim_id}/upload",
+                files={"files": (filename, pdf_file, "application/pdf")},
+                data={"document_type": document_type},
+            )
+        assert upload_response.status_code == 200
+        assert upload_response.json()["uploaded"]
 
     process_response = client.post(f"/api/v1/claims/{claim_id}/process")
 
@@ -38,12 +53,12 @@ def test_policy_agent_extracts_real_policy_document():
     body = process_response.json()
 
     assert body["workflow_history"] == ["intake", "document", "supervisor", "policy", "medical"]
-    assert body["policy_status"] == "extracted"
+    assert body["medical_status"] == "validated"
 
-    policy = body["policy_result"]
-    assert policy is not None
-    assert policy["is_policy_document"] is True
-    assert policy["policy_number"]
-    assert policy["policy_holder"] or policy["insurance_company"]
-    assert 0.0 <= policy["confidence"] <= 1.0
-    assert policy["covered"] in (True, False)
+    medical = body["medical_result"]
+    assert medical is not None
+    assert medical["diagnosis"]
+    assert medical["treatment"]
+    assert 0.0 <= medical["confidence"] <= 1.0
+    assert medical["confidence"] > 0.8
+    assert medical["clinical_consistency"] is True

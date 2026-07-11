@@ -67,6 +67,8 @@ def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimRes
 
     policy_result = result.get("policy_result")
     policy_status = result.get("policy_status")
+    medical_result = result.get("medical_result")
+    medical_status = result.get("medical_status")
 
     return ProcessClaimResponse(
         claim_id=claim.claim_id,
@@ -76,6 +78,8 @@ def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimRes
         document_summary=result["document_summary"],
         policy_result=policy_result.model_dump(mode="json") if policy_result else None,
         policy_status=policy_status.value if policy_status else None,
+        medical_result=medical_result.model_dump(mode="json") if medical_result else None,
+        medical_status=medical_status.value if medical_status else None,
         errors=result["errors"],
         message=message,
     )

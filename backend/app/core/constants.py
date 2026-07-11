@@ -50,6 +50,14 @@ class PolicyExtractionStatus(str, Enum):
     FAILED = "failed"
 
 
+class MedicalValidationStatus(str, Enum):
+    VALIDATED = "validated"
+    INCONSISTENT = "inconsistent"
+    INSUFFICIENT_DOCUMENTATION = "insufficient_documentation"
+    NO_DOCUMENT = "no_document"
+    FAILED = "failed"
+
+
 class FraudLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"

@@ -33,7 +33,7 @@ def test_process_claim_completes_full_workflow_history():
     body = process_response.json()
     assert body["claim_id"] == claim_id
     assert body["status"] == "processing"
-    assert body["workflow_history"] == ["intake", "document", "supervisor", "policy"]
+    assert body["workflow_history"] == ["intake", "document", "supervisor", "policy", "medical"]
     # No documents attached in this test, so the document stage has nothing
     # to OCR and short-circuits without calling Sarvam.
     assert body["document_status"] == "parsed"
