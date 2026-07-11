@@ -136,3 +136,59 @@ class SarvamVisionClient:
 @lru_cache
 def get_sarvam_client() -> SarvamVisionClient:
     return SarvamVisionClient()
+
+
+class SarvamChatError(Exception):
+    pass
+
+
+class SarvamChatClient:
+    """Wraps Sarvam's OpenAI-compatible chat completions endpoint
+    (`/v1/chat/completions`, Sarvam-30B/105B). See
+    docs.sarvam.ai/api-reference-docs/chat/chat-completions.
+    """
+
+    def __init__(self) -> None:
+        self._client = httpx.Client(
+            base_url=settings.sarvam_base_url,
+            headers={"api-subscription-key": settings.sarvam_api_key},
+            timeout=settings.sarvam_chat_timeout_seconds,
+        )
+
+    def chat_completion(
+        self,
+        messages: list[dict],
+        response_format: dict | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        reasoning_effort: str | None = None,
+    ) -> dict:
+        payload = {
+            "model": settings.sarvam_chat_model,
+            "messages": messages,
+            "temperature": temperature if temperature is not None else settings.sarvam_chat_temperature,
+            "max_tokens": max_tokens or settings.sarvam_chat_max_tokens,
+            "n": 1,
+            "reasoning_effort": reasoning_effort or settings.sarvam_chat_reasoning_effort,
+        }
+        if response_format:
+            payload["response_format"] = response_format
+
+        try:
+            response = self._client.post("/v1/chat/completions", json=payload)
+        except httpx.HTTPError as exc:
+            raise SarvamChatError(f"Sarvam chat API request failed: {exc}") from exc
+        self._raise_for_status(response)
+        return response.json()
+
+    def _raise_for_status(self, response: httpx.Response) -> None:
+        if response.status_code >= 400:
+            raise SarvamChatError(
+                f"Sarvam chat API error ({response.status_code}) on {response.request.url}: "
+                f"{response.text[:500]}"
+            )
+
+
+@lru_cache
+def get_sarvam_chat_client() -> SarvamChatClient:
+    return SarvamChatClient()

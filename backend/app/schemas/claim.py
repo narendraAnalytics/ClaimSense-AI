@@ -44,5 +44,7 @@ class ProcessClaimResponse(BaseModel):
     workflow_history: list[str]
     document_status: DocumentStatus
     document_summary: dict
+    policy_result: dict | None = None
+    policy_status: str | None = None
     errors: list[str]
     message: str

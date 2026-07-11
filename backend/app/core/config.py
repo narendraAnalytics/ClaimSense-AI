@@ -28,6 +28,23 @@ class Settings(BaseSettings):
     sarvam_vision_output_format: str = "md"
     sarvam_poll_interval_seconds: float = 3.0
     sarvam_poll_timeout_seconds: float = 180.0
+    sarvam_chat_model: str = "sarvam-30b"
+    sarvam_chat_temperature: float = 0.1
+    # Reasoning-model output spends part of this budget on hidden reasoning
+    # tokens before the final JSON answer — too low a cap truncates the
+    # response to an empty/null message.content. 4096 is the hard ceiling
+    # for sarvam-30b on the starter subscription tier (confirmed via a 400
+    # from the live API) — raise this if the account is upgraded.
+    sarvam_chat_max_tokens: int = 4096
+    # None disables reasoning entirely (per Sarvam's docs, sent as explicit
+    # JSON null) — even "low" reasoning_effort was consuming the whole
+    # 4096-token budget on hidden reasoning before any JSON answer, leaving
+    # message.content empty. This is a straightforward extraction task, not
+    # one needing chain-of-thought, so disabling it is both cheaper and
+    # fixes truncation.
+    sarvam_chat_reasoning_effort: str | None = None
+    sarvam_chat_timeout_seconds: float = 120.0
+    sarvam_chat_max_input_chars: int = 30000
     convex_url: str = ""
     convex_deploy_key: str = ""
     qdrant_api_key: str = ""

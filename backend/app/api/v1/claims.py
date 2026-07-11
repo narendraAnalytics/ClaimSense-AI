@@ -65,12 +65,17 @@ def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimRes
         else "Claim processing halted: " + "; ".join(result["errors"])
     )
 
+    policy_result = result.get("policy_result")
+    policy_status = result.get("policy_status")
+
     return ProcessClaimResponse(
         claim_id=claim.claim_id,
         status=claim.status,
         workflow_history=result["workflow_history"],
         document_status=result["document_status"],
         document_summary=result["document_summary"],
+        policy_result=policy_result.model_dump(mode="json") if policy_result else None,
+        policy_status=policy_status.value if policy_status else None,
         errors=result["errors"],
         message=message,
     )

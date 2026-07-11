@@ -43,6 +43,13 @@ class DocumentStatus(str, Enum):
     FAILED = "failed"
 
 
+class PolicyExtractionStatus(str, Enum):
+    EXTRACTED = "extracted"
+    NOT_A_POLICY = "not_a_policy"
+    NO_DOCUMENT = "no_document"
+    FAILED = "failed"
+
+
 class FraudLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"

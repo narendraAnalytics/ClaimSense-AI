@@ -4,11 +4,12 @@ from typing import Annotated
 
 from typing_extensions import TypedDict
 
-from app.core.constants import ClaimStatus, DocumentStatus
+from app.core.constants import ClaimStatus, DocumentStatus, PolicyExtractionStatus
 from app.core.types import ClaimID
 from app.models.claim import Claim
 from app.models.document import Document
 from app.models.document_result import DocumentResult
+from app.models.policy import PolicyResult
 
 
 class ClaimState(TypedDict):
@@ -19,6 +20,10 @@ class ClaimState(TypedDict):
     parsed_documents: Annotated[list[DocumentResult], operator.add]
     document_summary: dict
     document_status: DocumentStatus
+    policy_result: PolicyResult | None
+    policy_status: PolicyExtractionStatus | None
+    coverage_summary: str | None
+    coverage_decision: bool | None
     current_agent: str | None
     next_agent: str | None
     messages: Annotated[list[str], operator.add]
