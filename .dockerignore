@@ -1,0 +1,14 @@
+backend/.venv/
+backend/uploads/
+backend/tests/fixtures/*.pdf
+**/__pycache__/
+**/*.pyc
+.git/
+.gitignore
+*.pdf
+*.png
+*.txt
+!backend/pyproject.toml
+!backend/uv.lock
+README.md
+CLAUDE.md
