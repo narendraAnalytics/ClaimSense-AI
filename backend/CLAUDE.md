@@ -14,7 +14,9 @@ Guidance for Claude Code when working in this directory. See the repo-root `CLAU
 - loguru for logging
 - pytest (dev dependency, `[dependency-groups] dev` in `pyproject.toml`) for tests — run with `uv run pytest`
 
-Run commands: `uv sync` to install deps, `uv run uvicorn app.main:app --reload` to run the dev server (`/health`, `/docs`, `/redoc` all live at that point).
+Run commands: `uv sync` to install deps, `uv run uvicorn app.main:app --reload` to run the dev server (`/api/v1/health`, `/docs`, `/redoc` all live at that point).
+
+**Deployed**: live on Railway at `https://claimsense-ai-production.up.railway.app` (`APP_ENV=production`), e.g. `GET https://claimsense-ai-production.up.railway.app/api/v1/health`.
 
 ## Current state
 Phases 3-9 (of `../projectfolder.txt`) are implemented and pushed — the full 9-agent pipeline runs end to end:
@@ -87,7 +89,7 @@ uploads/reports/          generated adjuster-ready PDF reports, one per claim_id
   - `SARVAM_API_KEY` — Sarvam AI (reasoning + OCR; same key used by both `SarvamVisionClient` and `SarvamChatClient`, no separate chat key)
   - `CONVEX_URL`, `CONVEX_DEPLOY_KEY` — Convex DB/backend
   - `QDRANT_API_KEY`, `QDRANT_URL` — Qdrant Cloud vector search; **wired up as of Phase 10** (`app/services/qdrant_client.py`/`history_store.py`/`history.py`) — no longer just present-but-unused
-  - `UPLOADTHING_TOKEN` — UploadThing storage; present in `Settings` but **not wired up yet** — Phase 4 upload endpoint stores files to a local `uploads/temp/` dir, not UploadThing. Will be integrated in a later storage-migration phase.
+  - `UPLOADTHING_TOKEN` — UploadThing storage; present in `Settings` but **not wired up yet** — Phase 4 upload endpoint stores files to a local `uploads/temp/` dir, not UploadThing. Deliberately deferred until *after* the Next.js frontend exists (same sequencing decision as Convex below), not forgotten.
   Add new secrets to both `.env.example` (blank) and document them here + in `README.md`. Phase 7's `sarvam_chat_*` settings (`app/core/config.py`) needed no `.env.example` entry — they're non-secret tuned defaults, not credentials.
 
 ## MCP servers available (this machine only)
