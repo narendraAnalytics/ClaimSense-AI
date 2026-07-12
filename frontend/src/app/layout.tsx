@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
+import ConvexClientProvider from "@/components/providers/convex-client-provider";
 import "./globals.css";
 
 const bricolageGrotesque = Bricolage_Grotesque({
@@ -24,11 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${bricolageGrotesque.variable} ${instrumentSans.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-body">{children}</body>
-    </html>
+    <ConvexAuthNextjsServerProvider>
+      <html
+        lang="en"
+        className={`${bricolageGrotesque.variable} ${instrumentSans.variable} h-full antialiased`}
+      >
+        <body className="min-h-full flex flex-col font-body">
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }

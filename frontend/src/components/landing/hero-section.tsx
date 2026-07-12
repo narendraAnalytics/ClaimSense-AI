@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, Play, Sparkles } from "lucide-react";
 import { PipelineShowcase } from "@/components/landing/pipeline-showcase";
 import { AnimatedCounter } from "@/components/landing/animated-counter";
@@ -27,13 +28,13 @@ export function HeroSection() {
         </p>
 
         <div className="flex flex-wrap items-center gap-4">
-          <a
-            href="#"
+          <Link
+            href="/sign-in"
             className="inline-flex items-center gap-2.5 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_45%,#0ea77a_90%)] bg-[length:250%_auto] px-7.5 py-4 text-[16.5px] font-bold text-white shadow-[0_12px_34px_rgba(14,167,122,.42),inset_0_1px_0_rgba(255,255,255,.4)] transition-all animate-cs-shimmer hover:-translate-y-0.5 hover:shadow-[0_18px_44px_rgba(14,167,122,.55)]"
           >
             Start Free Trial
             <ArrowRight className="h-[18px] w-[18px]" />
-          </a>
+          </Link>
           <a
             href="#"
             className="inline-flex items-center gap-2.5 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 px-7 py-3.75 text-[16.5px] font-semibold text-[#0e8a6d] backdrop-blur-sm transition-all hover:border-[#0e8a6d] hover:bg-emerald-500/10 hover:text-[#0a6b55] hover:shadow-[0_8px_26px_rgba(16,185,129,.22)]"

@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth } from "convex/react";
 import { navLinks } from "@/lib/landing-data";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { isAuthenticated } = useConvexAuth();
+  const { signOut } = useAuthActions();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -67,12 +72,22 @@ export function SiteHeader() {
           ))}
         </div>
 
-        <a
-          href="#"
-          className="ml-2 hidden shrink-0 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5.5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35),inset_0_1px_0_rgba(255,255,255,.35)] transition-all hover:bg-right hover:shadow-[0_12px_32px_rgba(14,167,122,.5)] md:inline-block"
-        >
-          Request Demo
-        </a>
+        {isAuthenticated ? (
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="ml-2 hidden shrink-0 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 px-5.5 py-2.5 text-[15px] font-semibold text-[#0e8a6d] backdrop-blur-sm transition-all hover:border-[#0e8a6d] hover:bg-emerald-500/10 hover:text-[#0a6b55] md:inline-block"
+          >
+            Sign out
+          </button>
+        ) : (
+          <Link
+            href="/sign-in"
+            className="ml-2 hidden shrink-0 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5.5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35),inset_0_1px_0_rgba(255,255,255,.35)] transition-all hover:bg-right hover:shadow-[0_12px_32px_rgba(14,167,122,.5)] md:inline-block"
+          >
+            Request Demo
+          </Link>
+        )}
 
         <button
           onClick={() => setMenuOpen((v) => !v)}
@@ -95,12 +110,26 @@ export function SiteHeader() {
               {link}
             </a>
           ))}
-          <a
-            href="#"
-            className="mt-3 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4)] p-3.5 text-center font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35)]"
-          >
-            Request Demo
-          </a>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                void signOut();
+              }}
+              className="mt-3 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 p-3.5 text-center font-semibold text-[#0e8a6d]"
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link
+              href="/sign-in"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4)] p-3.5 text-center font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35)]"
+            >
+              Request Demo
+            </Link>
+          )}
         </div>
       )}
     </nav>
