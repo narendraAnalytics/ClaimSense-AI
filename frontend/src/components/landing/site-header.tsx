@@ -5,14 +5,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { navLinks } from "@/lib/landing-data";
+import { api } from "../../../convex/_generated/api";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
+  const user = useQuery(api.users.current, isAuthenticated ? {} : "skip");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -73,13 +75,32 @@ export function SiteHeader() {
         </div>
 
         {isAuthenticated ? (
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="ml-2 hidden shrink-0 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 px-5.5 py-2.5 text-[15px] font-semibold text-[#0e8a6d] backdrop-blur-sm transition-all hover:border-[#0e8a6d] hover:bg-emerald-500/10 hover:text-[#0a6b55] md:inline-block"
-          >
-            Sign out
-          </button>
+          <div className="ml-2 hidden shrink-0 items-center gap-3 md:flex">
+            {user?.name && (
+              <span className="text-[14.5px] font-medium text-[#1c4a3f]">
+                Welcome, {user.name}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              title="Sign out"
+              className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-400 to-cyan-400 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(16,185,129,.3)] transition-transform hover:scale-105"
+            >
+              {user?.image ? (
+                <Image
+                  src={user.image}
+                  alt={user.name ?? "Account"}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span>{user?.name?.[0]?.toUpperCase() ?? "?"}</span>
+              )}
+            </button>
+          </div>
         ) : (
           <Link
             href="/sign-in"
@@ -111,16 +132,36 @@ export function SiteHeader() {
             </a>
           ))}
           {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                void signOut();
-              }}
-              className="mt-3 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 p-3.5 text-center font-semibold text-[#0e8a6d]"
-            >
-              Sign out
-            </button>
+            <div className="mt-3 flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  void signOut();
+                }}
+                title="Sign out"
+                className="relative inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-400 to-cyan-400 text-[20px] font-bold text-white shadow-[0_4px_14px_rgba(16,185,129,.3)]"
+              >
+                {user?.image ? (
+                  <Image
+                    src={user.image}
+                    alt={user.name ?? "Account"}
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span>{user?.name?.[0]?.toUpperCase() ?? "?"}</span>
+                )}
+              </button>
+              {user?.name && (
+                <span className="text-center text-[14.5px] font-medium text-[#1c4a3f]">
+                  Welcome, {user.name}
+                </span>
+              )}
+              <span className="text-center text-[12.5px] text-[#4c7d6e]">Tap avatar to sign out</span>
+            </div>
           ) : (
             <Link
               href="/sign-in"
