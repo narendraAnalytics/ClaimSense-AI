@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from app.core.constants import SettlementDecision
@@ -14,6 +15,49 @@ from app.models.settlement import SettlementResult
 # rather than a 5th opaque model call.
 _HIGH_FRAUD_THRESHOLD = 70
 _REVIEW_FRAUD_THRESHOLD = 30
+
+_COPAY_PERCENT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%")
+_COPAY_NIL_TEXT = {"nil", "none", "n/a", "na", "not applicable", "no copay", "0", "0%"}
+
+
+def _parse_copayment_percent(copayment: str | None) -> float | None:
+    """Extracts a copayment percentage from policy_result.copayment's free
+    text (kept as a raw string, not a number, since OCR'd wording is
+    inconsistent — see app/models/policy.py). Returns None when nothing
+    parseable is found, so the caller can skip the deduction rather than
+    guess.
+    """
+    if not copayment:
+        return None
+    if copayment.strip().lower() in _COPAY_NIL_TEXT:
+        return 0.0
+    match = _COPAY_PERCENT_RE.search(copayment)
+    return float(match.group(1)) if match else None
+
+
+def _apply_policy_deductions(payable_amount: float, policy_result: PolicyResult) -> tuple[float, list[str]]:
+    """Deterministically applies the policy's deductible then copayment to
+    the billing-validated payable amount, in Python — never trusting an LLM
+    with claim arithmetic, same rationale as payable_amount itself
+    (app/services/billing.py).
+    """
+    factors: list[str] = []
+    amount = payable_amount
+
+    deductible = policy_result.deductible
+    if deductible is not None and deductible > 0:
+        amount = max(amount - deductible, 0.0)
+        factors.append(f"deductible of {deductible} applied")
+
+    copay_percent = _parse_copayment_percent(policy_result.copayment)
+    if copay_percent is not None and copay_percent > 0:
+        copay_share = amount * (copay_percent / 100)
+        amount -= copay_share
+        factors.append(f"copayment of {copay_percent}% applied (insured share {round(copay_share, 2)})")
+    elif copay_percent is None and policy_result.copayment:
+        factors.append(f"copayment text '{policy_result.copayment}' could not be parsed — not deducted")
+
+    return round(amount, 2), factors
 
 
 def recommend_settlement(
@@ -44,12 +88,24 @@ def recommend_settlement(
         decision = SettlementDecision.NEED_REVIEW
         factors.append("medical validation inconsistent")
         reasoning = "Needs review: the medical validation found a clinical inconsistency."
-        recommended_amount = billing_result.payable_amount if billing_result else None
+        if billing_result and billing_result.payable_amount is not None:
+            recommended_amount, deduction_factors = _apply_policy_deductions(
+                billing_result.payable_amount, policy_result
+            )
+            factors.extend(deduction_factors)
+        else:
+            recommended_amount = None
     elif fraud_score >= _REVIEW_FRAUD_THRESHOLD:
         decision = SettlementDecision.NEED_REVIEW
         factors.append(f"fraud_score >= {_REVIEW_FRAUD_THRESHOLD} (medium fraud risk)")
         reasoning = f"Needs review: fraud score {fraud_score} is elevated but below the reject threshold."
-        recommended_amount = billing_result.payable_amount if billing_result else None
+        if billing_result and billing_result.payable_amount is not None:
+            recommended_amount, deduction_factors = _apply_policy_deductions(
+                billing_result.payable_amount, policy_result
+            )
+            factors.extend(deduction_factors)
+        else:
+            recommended_amount = None
     elif billing_result is None or billing_result.error or billing_result.payable_amount is None:
         decision = SettlementDecision.NEED_REVIEW
         factors.append("billing validation missing or failed")
@@ -58,15 +114,13 @@ def recommend_settlement(
     else:
         decision = SettlementDecision.APPROVE
         factors.append("policy covered, medical validated, fraud risk low")
-        # Note: policy's copayment is kept as a free-text string (same
-        # rationale as its date fields — OCR'd wording is inconsistent),
-        # so it is NOT deducted here. A known limitation, not an oversight.
-        recommended_amount = billing_result.payable_amount
+        recommended_amount, deduction_factors = _apply_policy_deductions(billing_result.payable_amount, policy_result)
+        factors.extend(deduction_factors)
         reasoning = (
             f"Approved: policy covered, medical validation status "
             f"'{medical_result.validation_status if medical_result else 'unknown'}', "
             f"fraud score {fraud_score} below review threshold. Recommended amount is the "
-            f"billing-validated payable amount; copayment percentage is not yet deducted."
+            f"billing-validated payable amount after deductible/copayment: {', '.join(deduction_factors) if deduction_factors else 'no deductions applied'}."
         )
 
     confidences = [

@@ -25,18 +25,11 @@ UPLOADS = [
     ("NewLife_Hospital_Bill_Rajesh_Kumar.pdf", "hospital_bill"),
 ]
 
-EXPECTED_WORKFLOW_HISTORY = [
-    "intake",
-    "document",
-    "supervisor",
-    "policy",
-    "medical",
-    "billing",
-    "fraud",
-    "history",
-    "settlement",
-    "report",
-]
+EXPECTED_PREFIX = ["intake", "document", "supervisor", "policy", "medical"]
+# billing/fraud/history run in parallel (fan out from medical), so their
+# relative order within the superstep isn't guaranteed.
+EXPECTED_PARALLEL_STAGES = {"billing", "fraud", "history"}
+EXPECTED_SUFFIX = ["settlement", "report"]
 
 
 @pytest.mark.skipif(not settings.sarvam_api_key, reason="requires SARVAM_API_KEY")
@@ -59,7 +52,10 @@ def test_full_claim_pipeline_completes_all_nine_agents():
     assert process_response.status_code == 200
     body = process_response.json()
 
-    assert body["workflow_history"] == EXPECTED_WORKFLOW_HISTORY
+    history = body["workflow_history"]
+    assert history[:5] == EXPECTED_PREFIX
+    assert set(history[5:8]) == EXPECTED_PARALLEL_STAGES
+    assert history[8:] == EXPECTED_SUFFIX
 
     billing = body["billing_result"]
     assert billing is not None

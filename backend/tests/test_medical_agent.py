@@ -52,18 +52,12 @@ def test_medical_agent_validates_real_medical_documents():
     assert process_response.status_code == 200
     body = process_response.json()
 
-    assert body["workflow_history"] == [
-        "intake",
-        "document",
-        "supervisor",
-        "policy",
-        "medical",
-        "billing",
-        "fraud",
-        "history",
-        "settlement",
-        "report",
-    ]
+    history = body["workflow_history"]
+    assert history[:5] == ["intake", "document", "supervisor", "policy", "medical"]
+    # billing/fraud/history run in parallel (fan out from medical), so their
+    # relative order within the superstep isn't guaranteed.
+    assert set(history[5:8]) == {"billing", "fraud", "history"}
+    assert history[8:] == ["settlement", "report"]
     assert body["medical_status"] == "validated"
 
     medical = body["medical_result"]

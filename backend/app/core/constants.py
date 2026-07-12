@@ -88,6 +88,7 @@ class FraudAssessmentStatus(str, Enum):
 class HistoryStatus(str, Enum):
     FOUND = "found"
     NOT_FOUND = "not_found"
+    NO_DATA = "no_data"
     FAILED = "failed"
 
 

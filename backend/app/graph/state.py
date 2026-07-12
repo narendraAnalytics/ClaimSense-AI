@@ -28,6 +28,10 @@ from app.models.report import ReportResult
 from app.models.settlement import SettlementResult
 
 
+def _latest(a: datetime, b: datetime) -> datetime:
+    return b if b > a else a
+
+
 class ClaimState(TypedDict):
     claim_id: ClaimID
     claim: Claim
@@ -66,4 +70,10 @@ class ClaimState(TypedDict):
     metadata: dict
     workflow_history: Annotated[list[str], operator.add]
     started_at: datetime
-    updated_at: datetime
+    # billing/fraud/history run in the same superstep (see graph/builder.py's
+    # fan-out) and each independently sets this field — _latest() keeps
+    # whichever concurrent write has the latest timestamp instead of raising
+    # InvalidUpdateError on the unreduced conflict. (LangGraph inspects the
+    # reducer's signature, which builtin `max` doesn't expose, so a thin
+    # wrapper is required instead of using `max` directly.)
+    updated_at: Annotated[datetime, _latest]

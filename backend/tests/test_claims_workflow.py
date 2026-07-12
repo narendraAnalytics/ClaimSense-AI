@@ -33,18 +33,12 @@ def test_process_claim_completes_full_workflow_history():
     body = process_response.json()
     assert body["claim_id"] == claim_id
     assert body["status"] == "processing"
-    assert body["workflow_history"] == [
-        "intake",
-        "document",
-        "supervisor",
-        "policy",
-        "medical",
-        "billing",
-        "fraud",
-        "history",
-        "settlement",
-        "report",
-    ]
+    history = body["workflow_history"]
+    assert history[:5] == ["intake", "document", "supervisor", "policy", "medical"]
+    # billing/fraud/history run in parallel (fan out from medical), so their
+    # relative order within the superstep isn't guaranteed.
+    assert set(history[5:8]) == {"billing", "fraud", "history"}
+    assert history[8:] == ["settlement", "report"]
     # No documents attached in this test, so the document stage has nothing
     # to OCR and short-circuits without calling Sarvam.
     assert body["document_status"] == "parsed"
