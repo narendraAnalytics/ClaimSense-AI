@@ -4,6 +4,12 @@ import { Download } from "lucide-react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { ProcessClaimResponse } from "@/lib/backend-api";
 
+const DECISION_LABELS: Record<string, string> = {
+  approve: "Approved",
+  reject: "High Risk – Manual Review Required",
+  need_review: "Manual Review Required",
+};
+
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="rounded-xl border border-emerald-500/15 bg-white/60 p-4">
@@ -45,7 +51,11 @@ export function ClaimResults({ claim }: { claim: Doc<"claims"> }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
           label="Settlement Decision"
-          value={claim.settlementDecision ?? "—"}
+          value={
+            claim.settlementDecision
+              ? (DECISION_LABELS[claim.settlementDecision] ?? claim.settlementDecision)
+              : "—"
+          }
           tone={decisionTone}
         />
         <StatCard

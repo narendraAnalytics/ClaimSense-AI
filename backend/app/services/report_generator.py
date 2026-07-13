@@ -5,12 +5,23 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
 from app.core.config import settings
+from app.core.constants import SettlementDecision
 from app.core.logger import logger
 from app.graph.state import ClaimState
 from app.models.report import ReportResult
 from app.services import history_store
 
 REPORTS_DIR = Path(settings.upload_dir).parent / "reports"
+
+# Displayed labels only — the underlying SettlementDecision values ("approve"/
+# "reject"/"need_review") are unchanged; production insurance workflows have
+# the AI recommend/flag, not issue an absolute "reject", so the report/UI
+# never shows that raw value directly.
+_DECISION_LABELS = {
+    SettlementDecision.APPROVE: "Approved",
+    SettlementDecision.REJECT: "High Risk - Manual Review Required",
+    SettlementDecision.NEED_REVIEW: "Manual Review Required",
+}
 
 
 class ReportGenerationError(Exception):
@@ -60,12 +71,14 @@ def _build_pdf(state: ClaimState) -> FPDF:
     )
 
     _add_heading(pdf, "Executive Summary")
-    decision = settlement_result.approval_status.value if settlement_result else "unknown"
+    decision_label = (
+        _DECISION_LABELS.get(settlement_result.approval_status, "Unknown") if settlement_result else "Unknown"
+    )
     amount = settlement_result.recommended_amount if settlement_result else None
     _add_line(
         pdf,
         f"Claimant: {claim.claimant_name} | Policy: {claim.policy_number} | Type: {claim.claim_type}\n"
-        f"Recommended decision: {decision.upper()}"
+        f"Recommended decision: {decision_label}"
         + (f" | Recommended amount: {amount:,.2f}" if amount is not None else ""),
     )
     if settlement_result:
@@ -137,7 +150,7 @@ def _build_pdf(state: ClaimState) -> FPDF:
     if settlement_result:
         _add_line(
             pdf,
-            f"Decision: {settlement_result.approval_status.value} | "
+            f"Decision: {_DECISION_LABELS.get(settlement_result.approval_status, 'Unknown')} | "
             f"Recommended amount: {settlement_result.recommended_amount}\n"
             f"Confidence: {settlement_result.confidence}\n"
             f"Contributing factors: {', '.join(settlement_result.contributing_factors)}",

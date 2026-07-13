@@ -74,12 +74,20 @@ def recommend_settlement(
     if fraud_result is None or fraud_score >= _HIGH_FRAUD_THRESHOLD:
         decision = SettlementDecision.REJECT
         factors.append(f"fraud_score >= {_HIGH_FRAUD_THRESHOLD} (high fraud risk)")
-        reasoning = f"Rejected: fraud score {fraud_score} meets or exceeds the high-risk threshold of {_HIGH_FRAUD_THRESHOLD}."
+        reasoning = (
+            f"High Risk - Manual Review Required: fraud score {fraud_score} meets or exceeds "
+            f"the high-risk threshold of {_HIGH_FRAUD_THRESHOLD}. Recommended for manual "
+            f"investigation before any settlement decision."
+        )
         recommended_amount = 0.0
     elif policy_result is None or not policy_result.covered:
         decision = SettlementDecision.REJECT
         factors.append("policy not covered")
-        reasoning = "Rejected: the policy coverage decision was not confirmed as covered."
+        reasoning = (
+            "High Risk - Manual Review Required: the policy coverage decision was not "
+            "confirmed as covered. Recommended for manual investigation before any "
+            "settlement decision."
+        )
         recommended_amount = 0.0
     elif (
         medical_result is not None
