@@ -90,6 +90,7 @@ uploads/reports/          generated adjuster-ready PDF reports, one per claim_id
   - `CONVEX_URL`, `CONVEX_DEPLOY_KEY` — Convex DB/backend
   - `QDRANT_API_KEY`, `QDRANT_URL` — Qdrant Cloud vector search; **wired up as of Phase 10** (`app/services/qdrant_client.py`/`history_store.py`/`history.py`) — no longer just present-but-unused
   - `UPLOADTHING_TOKEN` — UploadThing storage; present in `Settings` but **not wired up yet** — Phase 4 upload endpoint stores files to a local `uploads/temp/` dir, not UploadThing. Deliberately deferred until *after* the Next.js frontend exists (same sequencing decision as Convex below), not forgotten.
+  - `ALLOWED_ORIGINS` (`app/core/config.py:19`, comma-separated, feeds `CORSMiddleware` in `app/main.py`) — defaults to `http://localhost:3000` only; now also set on Railway to include the production Vercel origin (`https://claimsense-ai-rust.vercel.app`), since the frontend's claim submission flow (`frontend/CLAUDE.md`) calls `/claims`, `/claims/{id}/upload`, and `/claims/{id}/process` directly from the browser.
   Add new secrets to both `.env.example` (blank) and document them here + in `README.md`. Phase 7's `sarvam_chat_*` settings (`app/core/config.py`) needed no `.env.example` entry — they're non-secret tuned defaults, not credentials.
 
 ## MCP servers available (this machine only)
