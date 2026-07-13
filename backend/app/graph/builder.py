@@ -9,6 +9,7 @@ from app.graph.nodes import (
     document_node,
     fraud_node,
     history_node,
+    human_approval_node,
     medical_node,
     policy_node,
     report_node,
@@ -36,6 +37,7 @@ def build_claim_graph() -> CompiledStateGraph:
     workflow.add_node("fraud", fraud_node)
     workflow.add_node("history", history_node)
     workflow.add_node("settlement", settlement_node)
+    workflow.add_node("human_approval", human_approval_node)
     workflow.add_node("report", report_node)
 
     workflow.add_edge(START, "document")
@@ -48,7 +50,8 @@ def build_claim_graph() -> CompiledStateGraph:
     workflow.add_edge("billing", "settlement")
     workflow.add_edge("fraud", "settlement")
     workflow.add_edge("history", "settlement")
-    workflow.add_edge("settlement", "report")
+    workflow.add_edge("settlement", "human_approval")
+    workflow.add_edge("human_approval", "report")
     workflow.add_edge("report", END)
 
     return workflow.compile(checkpointer=get_checkpointer())

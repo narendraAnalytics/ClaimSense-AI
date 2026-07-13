@@ -45,17 +45,31 @@ export function ProcessClaimButton({
 
     try {
       const result = await processClaim(backendClaimId);
-      await saveResults({
-        claimId,
-        status: result.errors.length > 0 && !result.settlement_result ? "failed" : "completed",
-        resultsJson: JSON.stringify(result),
-        recommendedAmount:
-          (result.settlement_result?.recommended_amount as number | undefined) ?? undefined,
-        fraudScore: (result.fraud_result?.fraud_score as number | undefined) ?? undefined,
-        settlementDecision:
-          (result.settlement_result?.approval_status as string | undefined) ?? undefined,
-        reportUrl: result.report_url ? getReportUrl(backendClaimId) : undefined,
-      });
+
+      if (result.status === "awaiting_approval") {
+        await saveResults({
+          claimId,
+          status: "awaiting_approval",
+          resultsJson: JSON.stringify(result),
+          recommendedAmount:
+            (result.settlement_result?.recommended_amount as number | undefined) ?? undefined,
+          fraudScore: (result.fraud_result?.fraud_score as number | undefined) ?? undefined,
+          settlementDecision:
+            (result.settlement_result?.approval_status as string | undefined) ?? undefined,
+        });
+      } else {
+        await saveResults({
+          claimId,
+          status: result.errors.length > 0 && !result.settlement_result ? "failed" : "completed",
+          resultsJson: JSON.stringify(result),
+          recommendedAmount:
+            (result.settlement_result?.recommended_amount as number | undefined) ?? undefined,
+          fraudScore: (result.fraud_result?.fraud_score as number | undefined) ?? undefined,
+          settlementDecision:
+            (result.settlement_result?.approval_status as string | undefined) ?? undefined,
+          reportUrl: result.report_url ? getReportUrl(backendClaimId) : undefined,
+        });
+      }
     } catch (err) {
       await saveResults({
         claimId,

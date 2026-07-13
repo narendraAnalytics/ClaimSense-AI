@@ -138,6 +138,30 @@ export async function processClaim(
   return response.json();
 }
 
+export interface OfficerDecisionRequest {
+  decision: "approve" | "reject" | "modify";
+  modified_amount?: number;
+  notes?: string;
+}
+
+export async function submitDecision(
+  backendClaimId: string,
+  payload: OfficerDecisionRequest,
+): Promise<ProcessClaimResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/claims/${backendClaimId}/decision`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to submit decision: ${await parseErrorBody(response)}`);
+  }
+  return response.json();
+}
+
 export function getReportUrl(backendClaimId: string): string {
   return `${API_BASE_URL}/claims/${backendClaimId}/report`;
 }

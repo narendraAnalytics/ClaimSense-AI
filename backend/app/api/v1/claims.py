@@ -6,8 +6,14 @@ from fastapi.responses import FileResponse
 
 from app.api.deps import get_existing_claim
 from app.core.constants import ClaimStatus
+from app.graph.state import ClaimState
 from app.models.claim import Claim
-from app.schemas.claim import CreateClaimRequest, CreateClaimResponse, ProcessClaimResponse
+from app.schemas.claim import (
+    CreateClaimRequest,
+    CreateClaimResponse,
+    OfficerDecisionRequest,
+    ProcessClaimResponse,
+)
 from app.services import workflow
 from app.services.claim_registry import add_claim
 from app.services.document_registry import get_documents_for_claim
@@ -53,32 +59,7 @@ def create_claim(request: CreateClaimRequest) -> CreateClaimResponse:
     )
 
 
-@router.post("/claims/{claim_id}/process", response_model=ProcessClaimResponse)
-async def process_claim(
-    claim: Claim = Depends(get_existing_claim),
-    force: bool = Query(
-        False,
-        description=(
-            "Discard any cached checkpoint for this claim and re-run the full pipeline "
-            "from scratch — use after adding/replacing documents on an already-processed claim."
-        ),
-    ),
-) -> ProcessClaimResponse:
-    documents = get_documents_for_claim(claim.claim_id)
-
-    # Checkpointed: a claim already fully processed returns its cached final
-    # state instantly (no repeat OCR/LLM calls/credits) unless force=true.
-    result = await workflow.resume_workflow(claim, documents, force=force)
-
-    claim.status = result["status"]
-    claim.updated_at = result["updated_at"]
-
-    message = (
-        "Claim processing pipeline completed"
-        if not result["errors"]
-        else "Claim processing halted: " + "; ".join(result["errors"])
-    )
-
+def _build_process_response(claim: Claim, result: ClaimState, message: str) -> ProcessClaimResponse:
     policy_result = result.get("policy_result")
     policy_status = result.get("policy_status")
     medical_result = result.get("medical_result")
@@ -118,6 +99,60 @@ async def process_claim(
         errors=result["errors"],
         message=message,
     )
+
+
+@router.post("/claims/{claim_id}/process", response_model=ProcessClaimResponse)
+async def process_claim(
+    claim: Claim = Depends(get_existing_claim),
+    force: bool = Query(
+        False,
+        description=(
+            "Discard any cached checkpoint for this claim and re-run the full pipeline "
+            "from scratch — use after adding/replacing documents on an already-processed claim."
+        ),
+    ),
+) -> ProcessClaimResponse:
+    documents = get_documents_for_claim(claim.claim_id)
+
+    # Checkpointed: a claim already fully processed returns its cached final
+    # state instantly (no repeat OCR/LLM calls/credits) unless force=true.
+    result = await workflow.resume_workflow(claim, documents, force=force)
+
+    claim.status = result["status"]
+    claim.updated_at = result["updated_at"]
+
+    if claim.status == ClaimStatus.AWAITING_APPROVAL:
+        message = "Claim processing paused: awaiting claims officer decision"
+    elif result["errors"]:
+        message = "Claim processing halted: " + "; ".join(result["errors"])
+    else:
+        message = "Claim processing pipeline completed"
+
+    return _build_process_response(claim, result, message)
+
+
+@router.post("/claims/{claim_id}/decision", response_model=ProcessClaimResponse)
+async def submit_decision(
+    request: OfficerDecisionRequest,
+    claim: Claim = Depends(get_existing_claim),
+) -> ProcessClaimResponse:
+    try:
+        result = await workflow.submit_officer_decision(
+            claim.claim_id, request.decision, request.modified_amount, request.notes
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    claim.status = ClaimStatus.REJECTED if request.decision == "reject" else ClaimStatus.APPROVED
+    claim.updated_at = result["updated_at"]
+
+    message = (
+        "Claim finalized by claims officer"
+        if not result["errors"]
+        else "Claim finalized with errors: " + "; ".join(result["errors"])
+    )
+
+    return _build_process_response(claim, result, message)
 
 
 @router.get("/claims/{claim_id}/report")

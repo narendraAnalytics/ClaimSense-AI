@@ -97,7 +97,11 @@ export const updateStatus = mutation({
 export const saveResults = mutation({
   args: {
     claimId: v.id("claims"),
-    status: v.union(v.literal("completed"), v.literal("failed")),
+    status: v.union(
+      v.literal("awaiting_approval"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
     resultsJson: v.optional(v.string()),
     recommendedAmount: v.optional(v.number()),
     fraudScore: v.optional(v.number()),
@@ -115,6 +119,32 @@ export const saveResults = mutation({
       settlementDecision: args.settlementDecision,
       reportUrl: args.reportUrl,
       errorMessage: args.errorMessage,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const saveDecision = mutation({
+  args: {
+    claimId: v.id("claims"),
+    officerDecision: v.string(),
+    officerAmount: v.optional(v.number()),
+    officerNotes: v.optional(v.string()),
+    resultsJson: v.optional(v.string()),
+    recommendedAmount: v.optional(v.number()),
+    reportUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await getOwnedClaim(ctx, args.claimId);
+    await ctx.db.patch(args.claimId, {
+      status: "completed",
+      officerDecision: args.officerDecision,
+      officerAmount: args.officerAmount,
+      officerNotes: args.officerNotes,
+      officerDecidedAt: Date.now(),
+      resultsJson: args.resultsJson,
+      recommendedAmount: args.recommendedAmount,
+      reportUrl: args.reportUrl,
       updatedAt: Date.now(),
     });
   },

@@ -7,6 +7,7 @@ import { DocumentUploader } from "./document-uploader";
 import { DocumentList } from "./document-list";
 import { ProcessClaimButton } from "./process-claim-button";
 import { ClaimResults } from "./claim-results";
+import { ClaimApprovalPanel } from "./claim-approval-panel";
 
 export function ClaimWorkspace({ claimId }: { claimId: Id<"claims"> }) {
   const claim = useQuery(api.claims.get, { claimId });
@@ -41,6 +42,7 @@ export function ClaimWorkspace({ claimId }: { claimId: Id<"claims"> }) {
         <ProcessClaimButton claimId={claimId} backendClaimId={claim.backendClaimId} />
       </section>
 
+      <ClaimApprovalPanel claim={claim} backendClaimId={claim.backendClaimId} />
       <ClaimResults claim={claim} />
     </div>
   );

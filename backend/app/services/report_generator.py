@@ -158,6 +158,23 @@ def _build_pdf(state: ClaimState) -> FPDF:
     else:
         _add_line(pdf, "No settlement recommendation was produced.")
 
+    _add_heading(pdf, "Final Decision (Claims Officer)")
+    human_decision = state.get("human_decision")
+    if human_decision:
+        final_amount = state.get("human_amount")
+        if final_amount is None and settlement_result:
+            final_amount = settlement_result.recommended_amount
+        decided_at = state.get("human_decided_at")
+        _add_line(
+            pdf,
+            f"Officer decision: {human_decision.capitalize()} | "
+            f"Final amount: {final_amount if final_amount is not None else 'n/a'}\n"
+            f"Notes: {state.get('human_notes') or 'none'}\n"
+            f"Decided at: {decided_at.isoformat() if decided_at else 'n/a'}",
+        )
+    else:
+        _add_line(pdf, "No claims officer decision was recorded for this claim.")
+
     return pdf
 
 
@@ -170,17 +187,26 @@ def generate_report(state: ClaimState) -> ReportResult:
         pdf.output(str(destination))
         page_count = pdf.page_no()
 
+        settlement_result = state.get("settlement_result")
+        human_decision = state.get("human_decision")
+        final_amount = state.get("human_amount")
+        if final_amount is None and settlement_result:
+            final_amount = settlement_result.recommended_amount
+
+        # Log the human-decided outcome (the true final result), not the AI's
+        # raw recommendation — that's what should inform future
+        # historical-similarity matches.
+        final_decision = human_decision or (settlement_result.approval_status.value if settlement_result else None)
+
         history_store.save_claim_summary(
             {
                 "claim_id": claim.claim_id,
                 "diagnosis": state["medical_result"].diagnosis if state.get("medical_result") else None,
                 "claim_type": claim.claim_type,
                 "policy_number": claim.policy_number,
-                "payable_amount": state["billing_result"].payable_amount if state.get("billing_result") else None,
+                "payable_amount": final_amount,
                 "fraud_score": state.get("fraud_score"),
-                "settlement_decision": (
-                    state["settlement_result"].approval_status.value if state.get("settlement_result") else None
-                ),
+                "settlement_decision": final_decision,
                 "incident_date": str(claim.incident_date),
             }
         )

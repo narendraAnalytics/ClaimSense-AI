@@ -16,6 +16,7 @@ class ClaimStatus(str, Enum):
     VALIDATING = "validating"
     PROCESSING = "processing"
     UNDER_REVIEW = "under_review"
+    AWAITING_APPROVAL = "awaiting_approval"
     APPROVED = "approved"
     REJECTED = "rejected"
     FAILED = "failed"

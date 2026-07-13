@@ -2,6 +2,7 @@ from app.agents.billing.agent import run as billing_run
 from app.agents.document.agent import run as document_run
 from app.agents.fraud.agent import run as fraud_run
 from app.agents.history.agent import run as history_run
+from app.agents.human_approval.agent import run as human_approval_run
 from app.agents.medical.agent import run as medical_run
 from app.agents.policy.agent import run as policy_run
 from app.agents.report.agent import run as report_run
@@ -40,6 +41,10 @@ def history_node(state: ClaimState) -> dict:
 
 def settlement_node(state: ClaimState) -> dict:
     return settlement_run(state)
+
+
+def human_approval_node(state: ClaimState) -> dict:
+    return human_approval_run(state)
 
 
 def report_node(state: ClaimState) -> dict:

@@ -86,6 +86,28 @@ export function ClaimResults({ claim }: { claim: Doc<"claims"> }) {
         </div>
       ) : null}
 
+      {claim.officerDecision && (
+        <div className="rounded-xl border border-emerald-500/25 bg-emerald-50/50 p-4">
+          <p className="text-[12.5px] font-medium text-[#4c7d6e]">
+            Final Decision (Claims Officer)
+          </p>
+          <p className="mt-1 text-[16px] font-bold text-[#0c2b24]">
+            {claim.officerDecision.charAt(0).toUpperCase() + claim.officerDecision.slice(1)}
+            {claim.officerAmount !== undefined
+              ? ` — ₹${claim.officerAmount.toLocaleString()}`
+              : ""}
+          </p>
+          {claim.officerNotes && (
+            <p className="mt-1 text-[14px] text-[#1c4a3f]">{claim.officerNotes}</p>
+          )}
+          {claim.officerDecidedAt && (
+            <p className="mt-1 text-[12.5px] text-[#4c7d6e]">
+              Decided {new Date(claim.officerDecidedAt).toLocaleString()}
+            </p>
+          )}
+        </div>
+      )}
+
       {claim.reportUrl && (
         <a
           href={claim.reportUrl}

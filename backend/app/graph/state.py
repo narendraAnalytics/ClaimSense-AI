@@ -63,6 +63,10 @@ class ClaimState(TypedDict):
     report_result: ReportResult | None
     report_status: ReportStatus | None
     report_url: str | None
+    human_decision: str | None
+    human_amount: float | None
+    human_notes: str | None
+    human_decided_at: datetime | None
     current_agent: str | None
     next_agent: str | None
     messages: Annotated[list[str], operator.add]

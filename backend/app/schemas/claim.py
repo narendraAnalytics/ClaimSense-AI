@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -61,3 +62,9 @@ class ProcessClaimResponse(BaseModel):
     report_url: str | None = None
     errors: list[str]
     message: str
+
+
+class OfficerDecisionRequest(BaseModel):
+    decision: Literal["approve", "reject", "modify"]
+    modified_amount: float | None = None
+    notes: str | None = None
