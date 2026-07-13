@@ -76,12 +76,6 @@ export function SiteHeader() {
 
         {isAuthenticated ? (
           <div className="ml-2 hidden shrink-0 items-center gap-3 md:flex">
-            <Link
-              href="/dashboard"
-              className="text-[14.5px] font-semibold text-[#0e8a6d] hover:text-[#0a6b55]"
-            >
-              Dashboard
-            </Link>
             {user?.name && (
               <span className="text-[14.5px] font-medium text-[#1c4a3f]">
                 Welcome, {user.name}
