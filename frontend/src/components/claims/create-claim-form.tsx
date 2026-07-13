@@ -15,6 +15,7 @@ export function CreateClaimForm() {
   const setBackendClaimId = useMutation(api.claims.setBackendClaimId);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [policyNumber] = useState(() => "POL-" + Date.now().toString(36).toUpperCase());
 
   return (
     <div className="w-full max-w-[520px] rounded-3xl border border-emerald-500/20 bg-white/70 p-8 shadow-[0_20px_60px_rgba(16,185,129,.15)] backdrop-blur-md">
@@ -33,7 +34,6 @@ export function CreateClaimForm() {
           setSubmitting(true);
 
           const form = new FormData(event.currentTarget);
-          const policyNumber = String(form.get("policyNumber") ?? "");
           const claimantName = String(form.get("claimantName") ?? "");
           const claimType = String(form.get("claimType") ?? "");
           const incidentDate = String(form.get("incidentDate") ?? "");
@@ -65,12 +65,14 @@ export function CreateClaimForm() {
         }}
       >
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13.5px] font-semibold text-[#1c4a3f]">Policy Number</span>
+          <span className="text-[13.5px] font-semibold text-[#1c4a3f]">
+            Policy Number <span className="font-normal text-[#4c7d6e]">(auto-generated)</span>
+          </span>
           <input
-            name="policyNumber"
-            required
-            placeholder="POL-123456"
-            className="rounded-xl border border-emerald-500/25 bg-white/80 px-4 py-2.5 text-[15px] text-[#0c2b24] outline-none transition-colors focus:border-[#0e8a6d]"
+            value={policyNumber}
+            disabled
+            readOnly
+            className="cursor-not-allowed rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-4 py-2.5 text-[15px] text-[#4c7d6e] outline-none"
           />
         </label>
         <label className="flex flex-col gap-1.5">

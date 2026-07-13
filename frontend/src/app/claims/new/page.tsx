@@ -12,7 +12,7 @@ export default function NewClaimPage() {
       }}
     >
       <AuroraBackground />
-      <SiteHeader />
+      <SiteHeader minimal />
       <div className="relative z-[1]">
         <CreateClaimForm />
       </div>
