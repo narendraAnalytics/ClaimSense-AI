@@ -9,7 +9,11 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { navLinks } from "@/lib/landing-data";
 import { api } from "../../../convex/_generated/api";
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  minimal?: boolean;
+};
+
+export function SiteHeader({ minimal = false }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated } = useConvexAuth();
@@ -21,6 +25,52 @@ export function SiteHeader() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const logo = (
+    <Link href="/" className="flex items-center gap-3 text-[#10312a]">
+      <span className="relative inline-flex h-11 w-11 items-center justify-center">
+        <Image
+          src="https://res.cloudinary.com/dkqbzwicr/image/upload/v1783856501/logoclaimsense_xjcpqe.png"
+          alt="ClaimSense AI"
+          width={44}
+          height={44}
+          className="object-contain drop-shadow-[0_4px_10px_rgba(16,185,129,.28)]"
+        />
+        <span className="absolute top-1/2 left-1/2 h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 shadow-[0_0_8px_rgba(34,211,238,.9)] animate-cs-orbit" />
+      </span>
+      <span className="flex flex-col leading-[1.05]">
+        <span className="font-heading text-xl font-bold tracking-tight">
+          ClaimSense
+          <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent">
+            {" "}
+            AI
+          </span>
+        </span>
+        <span className="text-[10.5px] tracking-[0.14em] text-[#4c7d6e] uppercase">
+          Claims Intelligence
+        </span>
+      </span>
+    </Link>
+  );
+
+  if (minimal) {
+    return (
+      <nav
+        className="fixed inset-x-0 top-0 z-50 pb-10 backdrop-blur-xl transition-[background] duration-300"
+        style={{
+          background: scrolled
+            ? "linear-gradient(to bottom, rgba(245,250,247,.42) 0%, rgba(245,250,247,.18) 55%, rgba(245,250,247,0) 100%)"
+            : "linear-gradient(to bottom, rgba(245,250,247,.16) 0%, rgba(245,250,247,.07) 55%, rgba(245,250,247,0) 100%)",
+          maskImage:
+            "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+        }}
+      >
+        <div className="mx-auto flex max-w-[1280px] items-center px-7 py-3.5">{logo}</div>
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -36,30 +86,7 @@ export function SiteHeader() {
       }}
     >
       <div className="mx-auto flex max-w-[1280px] items-center gap-7 px-7 py-3.5">
-        <a href="#" className="flex items-center gap-3 text-[#10312a]">
-          <span className="relative inline-flex h-11 w-11 items-center justify-center">
-            <Image
-              src="https://res.cloudinary.com/dkqbzwicr/image/upload/v1783856501/logoclaimsense_xjcpqe.png"
-              alt="ClaimSense AI"
-              width={44}
-              height={44}
-              className="object-contain drop-shadow-[0_4px_10px_rgba(16,185,129,.28)]"
-            />
-            <span className="absolute top-1/2 left-1/2 h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 shadow-[0_0_8px_rgba(34,211,238,.9)] animate-cs-orbit" />
-          </span>
-          <span className="flex flex-col leading-[1.05]">
-            <span className="font-heading text-xl font-bold tracking-tight">
-              ClaimSense
-              <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 bg-clip-text text-transparent">
-                {" "}
-                AI
-              </span>
-            </span>
-            <span className="text-[10.5px] tracking-[0.14em] text-[#4c7d6e] uppercase">
-              Claims Intelligence
-            </span>
-          </span>
-        </a>
+        {logo}
 
         <div className="ml-auto hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (

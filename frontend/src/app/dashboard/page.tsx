@@ -12,7 +12,7 @@ export default function DashboardPage() {
       }}
     >
       <AuroraBackground />
-      <SiteHeader />
+      <SiteHeader minimal />
       <div className="relative z-[1] pt-24">
         <ClaimsDashboard />
       </div>
