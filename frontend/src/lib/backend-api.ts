@@ -3,12 +3,17 @@ const API_BASE_URL = `${API_ROOT.replace(/\/$/, "")}/api/v1`;
 
 export const DOCUMENT_TYPES = [
   "policy",
+  "claim_form",
   "hospital_bill",
   "discharge_summary",
+  "admission_note",
   "lab_report",
+  "diagnostic_report",
   "prescription",
   "medical_certificate",
+  "id_proof",
   "fir",
+  "mlc",
   "accident_report",
   "photo",
   "video",

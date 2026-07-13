@@ -23,12 +23,17 @@ class ClaimStatus(str, Enum):
 
 class DocumentType(str, Enum):
     POLICY = "policy"
+    CLAIM_FORM = "claim_form"
     HOSPITAL_BILL = "hospital_bill"
     DISCHARGE_SUMMARY = "discharge_summary"
+    ADMISSION_NOTE = "admission_note"
     LAB_REPORT = "lab_report"
+    DIAGNOSTIC_REPORT = "diagnostic_report"
     PRESCRIPTION = "prescription"
     MEDICAL_CERTIFICATE = "medical_certificate"
+    ID_PROOF = "id_proof"
     FIR = "fir"
+    MLC = "mlc"
     ACCIDENT_REPORT = "accident_report"
     PHOTO = "photo"
     VIDEO = "video"
