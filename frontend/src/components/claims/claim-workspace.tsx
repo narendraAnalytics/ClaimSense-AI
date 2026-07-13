@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -11,6 +12,10 @@ import { ClaimApprovalPanel } from "./claim-approval-panel";
 
 export function ClaimWorkspace({ claimId }: { claimId: Id<"claims"> }) {
   const claim = useQuery(api.claims.get, { claimId });
+  // The cinematic ProcessClaimOverlay renders its own copies of the
+  // approval/results stages while it's open, so the plain cards below are
+  // hidden then to avoid literally duplicating the same UI on screen.
+  const [overlayOpen, setOverlayOpen] = useState(false);
 
   if (claim === undefined) {
     return <p className="text-[14.5px] text-[#4c7d6e]">Loading claim…</p>;
@@ -39,11 +44,20 @@ export function ClaimWorkspace({ claimId }: { claimId: Id<"claims"> }) {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-[16px] font-semibold text-[#0c2b24]">Process</h2>
-        <ProcessClaimButton claimId={claimId} backendClaimId={claim.backendClaimId} />
+        <ProcessClaimButton
+          claimId={claimId}
+          backendClaimId={claim.backendClaimId}
+          claim={claim}
+          onOverlayOpenChange={setOverlayOpen}
+        />
       </section>
 
-      <ClaimApprovalPanel claim={claim} backendClaimId={claim.backendClaimId} />
-      <ClaimResults claim={claim} />
+      {!overlayOpen && (
+        <>
+          <ClaimApprovalPanel claim={claim} backendClaimId={claim.backendClaimId} />
+          <ClaimResults claim={claim} />
+        </>
+      )}
     </div>
   );
 }
