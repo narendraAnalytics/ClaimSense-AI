@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 
 from app.api.deps import get_existing_claim
@@ -36,28 +36,39 @@ def create_claim(request: CreateClaimRequest) -> CreateClaimResponse:
     )
     add_claim(claim)
 
-    # No documents exist yet at creation time — upload happens afterward.
-    # This still proves the orchestration mechanics: Intake -> Supervisor -> Policy.
-    result = workflow.start_workflow(claim, documents=[])
-    claim.status = result["status"]
-    claim.updated_at = result["updated_at"]
+    # Deliberately does NOT invoke the pipeline graph here (it used to, as a
+    # Phase 5 orchestration smoke test) — with checkpointing wired in
+    # (app/graph/checkpointer.py), a graph run at creation time would create
+    # a completed checkpoint under this claim's thread_id before any
+    # documents exist, which would make the real POST /process call below
+    # resume into that empty-document terminal state instead of processing
+    # the actually-uploaded documents. Upload happens after creation, so the
+    # first real graph run belongs to /process.
 
     return CreateClaimResponse(
         claim_id=claim.claim_id,
         status=claim.status,
         created_at=claim.created_at,
-        message=f"Claim created; workflow reached: {' -> '.join(result['workflow_history'])}",
+        message="Claim created; upload documents and call /process to run the pipeline.",
     )
 
 
 @router.post("/claims/{claim_id}/process", response_model=ProcessClaimResponse)
-def process_claim(claim: Claim = Depends(get_existing_claim)) -> ProcessClaimResponse:
+async def process_claim(
+    claim: Claim = Depends(get_existing_claim),
+    force: bool = Query(
+        False,
+        description=(
+            "Discard any cached checkpoint for this claim and re-run the full pipeline "
+            "from scratch — use after adding/replacing documents on an already-processed claim."
+        ),
+    ),
+) -> ProcessClaimResponse:
     documents = get_documents_for_claim(claim.claim_id)
 
-    # No graph-level persistence yet, so there's no genuine prior run to
-    # pass in here — resume_workflow() re-initializes from scratch. Once
-    # checkpointing exists, `previous_state` would come from a real saved run.
-    result = workflow.resume_workflow(claim, documents)
+    # Checkpointed: a claim already fully processed returns its cached final
+    # state instantly (no repeat OCR/LLM calls/credits) unless force=true.
+    result = await workflow.resume_workflow(claim, documents, force=force)
 
     claim.status = result["status"]
     claim.updated_at = result["updated_at"]

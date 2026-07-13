@@ -41,6 +41,32 @@ const schema = defineSchema({
     backendUploaded: v.boolean(),
     uploadedAt: v.number(),
   }).index("by_claim", ["claimId"]),
+
+  // LangGraph checkpoint storage for the backend's claim-processing graph.
+  // Not user-scoped / not driven by Convex Auth — keyed by the backend's own
+  // claim_id string as thread_id, written only via internal functions called
+  // by the FastAPI backend using its admin deploy key.
+  checkpoints: defineTable({
+    threadId: v.string(),
+    checkpointNs: v.string(),
+    checkpointId: v.string(),
+    parentCheckpointId: v.optional(v.string()),
+    type: v.string(),
+    checkpoint: v.string(),
+    metadata: v.string(),
+    createdAt: v.number(),
+  }).index("by_thread", ["threadId", "checkpointNs", "checkpointId"]),
+
+  checkpointWrites: defineTable({
+    threadId: v.string(),
+    checkpointNs: v.string(),
+    checkpointId: v.string(),
+    taskId: v.string(),
+    idx: v.number(),
+    channel: v.string(),
+    type: v.string(),
+    value: v.string(),
+  }).index("by_checkpoint", ["threadId", "checkpointNs", "checkpointId"]),
 });
 
 export default schema;

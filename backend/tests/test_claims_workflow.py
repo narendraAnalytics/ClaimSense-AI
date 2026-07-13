@@ -13,14 +13,18 @@ CLAIM_PAYLOAD = {
 }
 
 
-def test_create_claim_runs_orchestration():
+def test_create_claim_does_not_run_pipeline():
+    # As of checkpointing (app/graph/checkpointer.py), claim creation no
+    # longer eagerly invokes the graph — doing so would create a completed
+    # checkpoint under the claim's thread_id before any documents exist,
+    # which would make the real /process call below resume into that
+    # empty-document terminal state instead of processing real documents.
     response = client.post("/api/v1/claims", json=CLAIM_PAYLOAD)
 
     assert response.status_code == 200
     body = response.json()
     assert body["claim_id"]
-    assert body["status"] == "processing"
-    assert "intake -> document -> supervisor -> policy" in body["message"]
+    assert body["status"] == "new"
 
 
 def test_process_claim_completes_full_workflow_history():

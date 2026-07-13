@@ -3,6 +3,7 @@ from functools import lru_cache
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from app.graph.checkpointer import get_checkpointer
 from app.graph.nodes import (
     billing_node,
     document_node,
@@ -50,7 +51,7 @@ def build_claim_graph() -> CompiledStateGraph:
     workflow.add_edge("settlement", "report")
     workflow.add_edge("report", END)
 
-    return workflow.compile()
+    return workflow.compile(checkpointer=get_checkpointer())
 
 
 @lru_cache

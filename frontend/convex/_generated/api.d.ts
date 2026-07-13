@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as checkpoints from "../checkpoints.js";
 import type * as claims from "../claims.js";
 import type * as documents from "../documents.js";
 import type * as http from "../http.js";
@@ -22,6 +23,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  checkpoints: typeof checkpoints;
   claims: typeof claims;
   documents: typeof documents;
   http: typeof http;
