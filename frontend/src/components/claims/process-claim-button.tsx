@@ -2,108 +2,62 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Eye, Loader2, PlayCircle } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { processClaim, getReportUrl } from "@/lib/backend-api";
-import { ProcessClaimOverlay, type OverlayStepKey } from "./process-claim-overlay";
 
-// Maps the claim's real, persisted status to the overlay step it should
-// show when reopened — so the nice pipeline view stays reachable after a
-// page reload/navigation, not just as a one-shot side effect of clicking
-// "Process Claim" in the same browser session.
-function stepKeyForStatus(status: Doc<"claims">["status"]): OverlayStepKey {
-  if (status === "awaiting_approval") return "human_approval";
-  if (status === "completed") return "done";
-  if (status === "failed") return "failed";
-  return "document";
-}
-
-// Simulated Phase A timing (document -> settlement) — purely a UI animation
-// layered over the one real /process call, since the backend has no
-// per-agent streaming yet (see frontend/pdffile.txt). Holds at "settlement"
-// (last entry has no timeout) until the real response arrives, so the
-// animation can never claim completion ahead of reality.
-const PHASE_A_ORDER: OverlayStepKey[] = [
-  "document",
-  "supervisor",
-  "policy",
-  "medical",
-  "parallel",
-  "settlement",
+// Purely a UI animation layered over the one real /process call, since the
+// backend has no per-agent streaming yet (see frontend/pdffile.txt). Cycles
+// while waiting and simply stops (interval cleared) the moment the real
+// response arrives — it never claims completion ahead of reality.
+const AGENT_STEPS = [
+  "Document Intelligence",
+  "Intake Supervisor",
+  "Policy Coverage",
+  "Medical Validation",
+  "Billing · Fraud · Historical Similarity",
+  "Settlement Recommendation",
+  "Report Generation",
 ];
-const PHASE_A_DURATIONS = [1900, 900, 1900, 1900, 2400];
 
 export function ProcessClaimButton({
   claimId,
   backendClaimId,
-  claim,
-  onOverlayOpenChange,
 }: {
   claimId: Id<"claims">;
   backendClaimId: string;
-  claim: Doc<"claims">;
-  onOverlayOpenChange?: (open: boolean) => void;
 }) {
   const documents = useQuery(api.documents.listByClaim, { claimId });
   const updateStatus = useMutation(api.claims.updateStatus);
   const saveResults = useMutation(api.claims.saveResults);
   const [processing, setProcessing] = useState(false);
-  const [overlayOpen, setOverlayOpen] = useState(() => claim.status === "awaiting_approval");
-  const [stepKey, setStepKey] = useState<OverlayStepKey>(() => stepKeyForStatus(claim.status));
+  const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const canProcess = (documents?.length ?? 0) > 0 && !processing;
 
   useEffect(() => {
-    onOverlayOpenChange?.(overlayOpen);
-  }, [overlayOpen, onOverlayOpenChange]);
-
-  // Once the officer's decision lands (claim.status flips away from
-  // "awaiting_approval" to "completed" via the existing saveDecision
-  // mutation inside ClaimApprovalPanel), advance the overlay's visual
-  // timeline through Report Generation to the success screen. Purely
-  // reacting to real Convex state — no new mutation calls here.
-  useEffect(() => {
-    if (stepKey !== "human_approval" || claim.status !== "completed") return;
-    setStepKey("report");
-    const t = setTimeout(() => setStepKey("done"), 1200);
-    return () => clearTimeout(t);
-  }, [claim.status, stepKey]);
-
-  function clearTimer() {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }
-
-  function runSimulatedPhaseA() {
-    let i = 0;
-    const step = () => {
-      if (i >= PHASE_A_DURATIONS.length) return; // hold at "settlement"
-      timerRef.current = setTimeout(() => {
-        i += 1;
-        setStepKey(PHASE_A_ORDER[i]);
-        step();
-      }, PHASE_A_DURATIONS[i]);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-    step();
-  }
+  }, []);
 
   async function handleProcess() {
     setError(null);
     setProcessing(true);
-    setOverlayOpen(true);
-    setStepKey("document");
-    clearTimer();
+    setStepIndex(0);
     await updateStatus({ claimId, status: "processing" });
-    runSimulatedPhaseA();
+
+    intervalRef.current = setInterval(() => {
+      setStepIndex((i) => Math.min(i + 1, AGENT_STEPS.length - 1));
+    }, 2200);
 
     try {
       const result = await processClaim(backendClaimId);
-      clearTimer();
 
       if (result.status === "awaiting_approval") {
-        setStepKey("human_approval");
         await saveResults({
           claimId,
           status: "awaiting_approval",
@@ -115,14 +69,9 @@ export function ProcessClaimButton({
             (result.settlement_result?.approval_status as string | undefined) ?? undefined,
         });
       } else {
-        const failed = result.errors.length > 0 && !result.settlement_result;
-        setStepKey(failed ? "failed" : "report");
-        if (!failed) {
-          setTimeout(() => setStepKey("done"), 1200);
-        }
         await saveResults({
           claimId,
-          status: failed ? "failed" : "completed",
+          status: result.errors.length > 0 && !result.settlement_result ? "failed" : "completed",
           resultsJson: JSON.stringify(result),
           recommendedAmount:
             (result.settlement_result?.recommended_amount as number | undefined) ?? undefined,
@@ -133,71 +82,48 @@ export function ProcessClaimButton({
         });
       }
     } catch (err) {
-      clearTimer();
-      const message = err instanceof Error ? err.message : "Processing failed";
-      setStepKey("failed");
-      setError(message);
       await saveResults({
         claimId,
         status: "failed",
-        errorMessage: message,
+        errorMessage: err instanceof Error ? err.message : "Processing failed",
       });
+      setError(err instanceof Error ? err.message : "Processing failed");
     } finally {
+      if (intervalRef.current) clearInterval(intervalRef.current);
       setProcessing(false);
     }
   }
 
-  const canReopen =
-    !overlayOpen &&
-    (claim.status === "awaiting_approval" || claim.status === "completed" || claim.status === "failed");
-
   return (
     <div className="rounded-2xl border border-emerald-500/20 bg-white/70 p-5 backdrop-blur-md">
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          disabled={!canProcess}
-          onClick={() => void handleProcess()}
-          className="inline-flex items-center gap-2.5 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_45%,#0ea77a_90%)] bg-[length:250%_auto] px-6 py-3 text-[15.5px] font-bold text-white shadow-[0_12px_34px_rgba(14,167,122,.42)] transition-all disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {processing ? (
-            <Loader2 className="h-[16px] w-[16px] animate-spin" />
-          ) : (
-            <PlayCircle className="h-[16px] w-[16px]" />
-          )}
-          {processing ? "Processing…" : "Process Claim"}
-        </button>
-
-        {canReopen && (
-          <button
-            type="button"
-            onClick={() => {
-              setStepKey(stepKeyForStatus(claim.status));
-              setOverlayOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/60 px-5 py-2.5 text-[14.5px] font-semibold text-[#0e8a6d] transition-all hover:border-[#0e8a6d] hover:bg-emerald-500/10"
-          >
-            <Eye className="h-[16px] w-[16px]" />
-            View Pipeline
-          </button>
+      <button
+        type="button"
+        disabled={!canProcess}
+        onClick={() => void handleProcess()}
+        className="inline-flex items-center gap-2.5 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_45%,#0ea77a_90%)] bg-[length:250%_auto] px-6 py-3 text-[15.5px] font-bold text-white shadow-[0_12px_34px_rgba(14,167,122,.42)] transition-all disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {processing ? (
+          <Loader2 className="h-[16px] w-[16px] animate-spin" />
+        ) : (
+          <PlayCircle className="h-[16px] w-[16px]" />
         )}
-      </div>
+        {processing ? "Processing…" : "Process Claim"}
+      </button>
 
+      {processing && (
+        <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-emerald-500/15 bg-white/60 px-4 py-2.5">
+          <Loader2 className="h-[15px] w-[15px] flex-none animate-spin text-[#0e8a6d]" />
+          <p key={stepIndex} className="text-[13.5px] font-medium text-[#0c2b24] transition-opacity">
+            Running {AGENT_STEPS[stepIndex]}…
+          </p>
+        </div>
+      )}
       {!processing && (documents?.length ?? 0) === 0 && (
         <p className="mt-3 text-[13.5px] text-[#4c7d6e]">
           Upload at least one document before processing.
         </p>
       )}
-      {error && !overlayOpen && <p className="mt-3 text-[13.5px] text-red-600">{error}</p>}
-
-      <ProcessClaimOverlay
-        open={overlayOpen}
-        stepKey={stepKey}
-        errorMessage={error}
-        claim={claim}
-        backendClaimId={backendClaimId}
-        onClose={() => setOverlayOpen(false)}
-      />
+      {error && <p className="mt-3 text-[13.5px] text-red-600">{error}</p>}
     </div>
   );
 }

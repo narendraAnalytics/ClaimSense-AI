@@ -15,29 +15,11 @@ const DECISION_LABELS: Record<string, string> = {
   incomplete_documentation: "Incomplete Documentation – Additional Documents Required",
 };
 
-function StatCard({
-  label,
-  value,
-  tone,
-  dark,
-}: {
-  label: string;
-  value: string;
-  tone?: string;
-  dark?: boolean;
-}) {
+function StatCard({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div
-      className={
-        dark
-          ? "rounded-xl border border-white/10 bg-white/[.05] p-4"
-          : "rounded-xl border border-emerald-500/15 bg-white/60 p-4"
-      }
-    >
-      <p className={`text-[12.5px] font-medium ${dark ? "text-[#a9d9c9]" : "text-[#4c7d6e]"}`}>{label}</p>
-      <p className={`mt-1 text-[19px] font-bold ${tone ?? (dark ? "text-[#eafff5]" : "text-[#0c2b24]")}`}>
-        {value}
-      </p>
+    <div className="rounded-xl border border-emerald-500/15 bg-white/60 p-4">
+      <p className="text-[12.5px] font-medium text-[#4c7d6e]">{label}</p>
+      <p className={`mt-1 text-[19px] font-bold ${tone ?? "text-[#0c2b24]"}`}>{value}</p>
     </div>
   );
 }
@@ -45,14 +27,10 @@ function StatCard({
 export function ClaimApprovalPanel({
   claim,
   backendClaimId,
-  variant = "card",
 }: {
   claim: Doc<"claims">;
   backendClaimId: string;
-  /** "card" = standalone light-theme card (default); "overlay" = dark theme, no outer card chrome, for embedding inside ProcessClaimOverlay. Purely presentational — same submitDecision/saveDecision calls either way. */
-  variant?: "card" | "overlay";
 }) {
-  const dark = variant === "overlay";
   const saveDecision = useMutation(api.claims.saveDecision);
   const [submitting, setSubmitting] = useState<"approve" | "reject" | "modify" | null>(null);
   const [modifiedAmount, setModifiedAmount] = useState("");
@@ -103,25 +81,16 @@ export function ClaimApprovalPanel({
   }
 
   return (
-    <div
-      className={
-        dark
-          ? "flex flex-col gap-4"
-          : "flex flex-col gap-4 rounded-2xl border border-amber-500/25 bg-amber-50/60 p-5 backdrop-blur-md"
-      }
-    >
-      {!dark && (
-        <h2 className="font-heading text-[19px] font-bold text-[#0c2b24]">
-          Awaiting Claims Officer Decision
-        </h2>
-      )}
+    <div className="flex flex-col gap-4 rounded-2xl border border-amber-500/25 bg-amber-50/60 p-5 backdrop-blur-md">
+      <h2 className="font-heading text-[19px] font-bold text-[#0c2b24]">
+        Awaiting Claims Officer Decision
+      </h2>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
           label="AI Recommendation"
           value={decision ? (DECISION_LABELS[decision] ?? decision) : "—"}
           tone={decisionTone}
-          dark={dark}
         />
         <StatCard
           label="Recommended Amount"
@@ -130,7 +99,6 @@ export function ClaimApprovalPanel({
               ? `₹${Number(settlement.recommended_amount).toLocaleString()}`
               : "—"
           }
-          dark={dark}
         />
         <StatCard
           label="Fraud Score"
@@ -140,62 +108,33 @@ export function ClaimApprovalPanel({
               ? "text-red-600"
               : "text-emerald-600"
           }
-          dark={dark}
         />
       </div>
 
       {settlement?.reasoning ? (
-        <div
-          className={
-            dark
-              ? "rounded-xl border border-white/10 bg-white/[.05] p-4"
-              : "rounded-xl border border-emerald-500/15 bg-white/60 p-4"
-          }
-        >
-          <p className={`text-[12.5px] font-medium ${dark ? "text-[#a9d9c9]" : "text-[#4c7d6e]"}`}>
-            AI Reasoning
-          </p>
-          <p className={`mt-1 text-[14px] ${dark ? "text-[#d7f5e9]" : "text-[#1c4a3f]"}`}>
-            {String(settlement.reasoning)}
-          </p>
+        <div className="rounded-xl border border-emerald-500/15 bg-white/60 p-4">
+          <p className="text-[12.5px] font-medium text-[#4c7d6e]">AI Reasoning</p>
+          <p className="mt-1 text-[14px] text-[#1c4a3f]">{String(settlement.reasoning)}</p>
         </div>
       ) : null}
 
-      <div
-        className={
-          dark
-            ? "flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[.05] p-4"
-            : "flex flex-col gap-3 rounded-xl border border-emerald-500/15 bg-white/60 p-4"
-        }
-      >
-        <label
-          className={`flex flex-col gap-1 text-[13.5px] font-medium ${dark ? "text-[#a9d9c9]" : "text-[#4c7d6e]"}`}
-        >
+      <div className="flex flex-col gap-3 rounded-xl border border-emerald-500/15 bg-white/60 p-4">
+        <label className="flex flex-col gap-1 text-[13.5px] font-medium text-[#4c7d6e]">
           Notes (optional)
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className={
-              dark
-                ? "rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-[14px] text-[#eafff5]"
-                : "rounded-lg border border-emerald-500/20 bg-white px-3 py-2 text-[14px] text-[#0c2b24]"
-            }
+            className="rounded-lg border border-emerald-500/20 bg-white px-3 py-2 text-[14px] text-[#0c2b24]"
           />
         </label>
-        <label
-          className={`flex flex-col gap-1 text-[13.5px] font-medium ${dark ? "text-[#a9d9c9]" : "text-[#4c7d6e]"}`}
-        >
+        <label className="flex flex-col gap-1 text-[13.5px] font-medium text-[#4c7d6e]">
           Modified amount (for Modify)
           <input
             type="number"
             value={modifiedAmount}
             onChange={(e) => setModifiedAmount(e.target.value)}
-            className={
-              dark
-                ? "rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-[14px] text-[#eafff5]"
-                : "rounded-lg border border-emerald-500/20 bg-white px-3 py-2 text-[14px] text-[#0c2b24]"
-            }
+            className="rounded-lg border border-emerald-500/20 bg-white px-3 py-2 text-[14px] text-[#0c2b24]"
           />
         </label>
       </div>
@@ -231,11 +170,7 @@ export function ClaimApprovalPanel({
           type="button"
           disabled={submitting !== null || !modifiedAmount}
           onClick={() => void handleDecision("modify")}
-          className={
-            dark
-              ? "inline-flex items-center gap-2 rounded-full border-[1.5px] border-white/25 bg-white/[.06] px-5 py-2.5 text-[14.5px] font-semibold text-[#eafff5] transition-all disabled:cursor-not-allowed disabled:opacity-60"
-              : "inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 px-5 py-2.5 text-[14.5px] font-semibold text-[#0e8a6d] transition-all disabled:cursor-not-allowed disabled:opacity-60"
-          }
+          className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 px-5 py-2.5 text-[14.5px] font-semibold text-[#0e8a6d] transition-all disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting === "modify" ? (
             <Loader2 className="h-[16px] w-[16px] animate-spin" />
@@ -247,22 +182,16 @@ export function ClaimApprovalPanel({
       </div>
 
       {submitting !== null && (
-        <div
-          className={
-            dark
-              ? "flex items-center gap-2.5 rounded-xl border border-cyan-400/25 bg-cyan-400/[.08] px-4 py-3"
-              : "flex items-center gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-50/70 px-4 py-3"
-          }
-        >
-          <Loader2 className={`h-[16px] w-[16px] flex-none animate-spin ${dark ? "text-cyan-300" : "text-[#0e8a6d]"}`} />
-          <p className={`text-[13px] ${dark ? "text-cyan-100" : "text-[#0c2b24]"}`}>
+        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-50/70 px-4 py-3">
+          <Loader2 className="h-[16px] w-[16px] flex-none animate-spin text-[#0e8a6d]" />
+          <p className="text-[13px] text-[#0c2b24]">
             Processing your decision — generating the final report and PDF. This can take up to a
             minute. Keep this page open, the result and download link will appear here automatically.
           </p>
         </div>
       )}
 
-      {error && <p className={`text-[13.5px] ${dark ? "text-red-300" : "text-red-600"}`}>{error}</p>}
+      {error && <p className="text-[13.5px] text-red-600">{error}</p>}
     </div>
   );
 }
