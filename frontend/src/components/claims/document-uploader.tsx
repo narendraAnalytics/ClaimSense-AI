@@ -22,11 +22,13 @@ export function DocumentUploader({
   const [documentType, setDocumentType] = useState<DocumentType>("policy");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backendWarnings, setBackendWarnings] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setError(null);
+    setBackendWarnings([]);
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
@@ -58,8 +60,18 @@ export function DocumentUploader({
 
         try {
           await uploadDocument(backendClaimId, file, documentType);
-        } catch {
-          // Stored in Convex; backend delivery can be retried, don't block the rest of the batch.
+        } catch (err) {
+          // Stored in Convex; don't block the rest of the batch, but this
+          // document will never actually be processed until it reaches the
+          // backend — silently leaving it as a permanent "Pending" clock icon
+          // (document-list.tsx) with no explanation was the actual root
+          // cause of a "no fraud score / no report" bug report, so surface
+          // it visibly instead.
+          const message = err instanceof Error ? err.message : "unknown error";
+          setBackendWarnings((prev) => [
+            ...prev,
+            `${file.name}: not received by the processing backend (${message}) — it will not be included when you click Process Claim.`,
+          ]);
         }
       }
     } catch (err) {
@@ -100,6 +112,15 @@ export function DocumentUploader({
         </label>
       </div>
       {error && <p className="mt-3 text-[13.5px] text-red-600">{error}</p>}
+      {backendWarnings.length > 0 && (
+        <div className="mt-3 flex flex-col gap-1">
+          {backendWarnings.map((warning, idx) => (
+            <p key={idx} className="text-[13.5px] text-amber-600">
+              {warning}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

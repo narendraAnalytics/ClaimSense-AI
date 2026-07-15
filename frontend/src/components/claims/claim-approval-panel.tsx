@@ -5,7 +5,7 @@ import { useMutation } from "convex/react";
 import { CheckCircle2, XCircle, PenLine, Loader2 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import { submitDecision, getReportUrl, type ProcessClaimResponse } from "@/lib/backend-api";
+import { submitDecision, getReportUrl, parseResultsJson } from "@/lib/backend-api";
 
 const DECISION_LABELS: Record<string, string> = {
   approve: "Approved",
@@ -59,9 +59,7 @@ export function ClaimApprovalPanel({
 
   if (claim.status !== "awaiting_approval") return null;
 
-  const results: ProcessClaimResponse | null = claim.resultsJson
-    ? JSON.parse(claim.resultsJson)
-    : null;
+  const results = parseResultsJson(claim.resultsJson);
   const settlement = results?.settlement_result as Record<string, unknown> | null | undefined;
   const decision = settlement?.approval_status as string | undefined;
   const decisionTone =

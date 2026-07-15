@@ -84,6 +84,20 @@ export interface ProcessClaimResponse {
   message: string;
 }
 
+// claim.resultsJson is a stringified ProcessClaimResponse persisted by the
+// frontend itself (create-claim-form.tsx/process-claim-button.tsx/
+// claim-approval-panel.tsx) — parsing it in a render body without a guard
+// means any unexpected/malformed payload crashes the whole component tree
+// instead of degrading gracefully.
+export function parseResultsJson(resultsJson: string | undefined): ProcessClaimResponse | null {
+  if (!resultsJson) return null;
+  try {
+    return JSON.parse(resultsJson) as ProcessClaimResponse;
+  } catch {
+    return null;
+  }
+}
+
 async function parseErrorBody(response: Response): Promise<string> {
   try {
     const body = await response.json();

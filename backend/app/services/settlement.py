@@ -71,7 +71,16 @@ def recommend_settlement(
     fraud_score = fraud_result.fraud_score if fraud_result else 0
     factors.append(f"fraud_score={fraud_score}")
 
-    if fraud_result is None or fraud_score >= _HIGH_FRAUD_THRESHOLD:
+    if fraud_result is None:
+        decision = SettlementDecision.REJECT
+        factors.append("fraud assessment unavailable (no documents successfully processed)")
+        reasoning = (
+            "High Risk - Manual Review Required: fraud assessment could not be completed "
+            "because no documents were successfully processed for this claim. Recommended "
+            "for manual investigation before any settlement decision."
+        )
+        recommended_amount = 0.0
+    elif fraud_score >= _HIGH_FRAUD_THRESHOLD:
         decision = SettlementDecision.REJECT
         factors.append(f"fraud_score >= {_HIGH_FRAUD_THRESHOLD} (high fraud risk)")
         reasoning = (

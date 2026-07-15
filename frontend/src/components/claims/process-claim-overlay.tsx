@@ -19,9 +19,17 @@ import {
   CircleCheck,
   Circle,
   TriangleAlert,
+  Download,
 } from "lucide-react";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import { parseResultsJson } from "@/lib/backend-api";
 import { ClaimApprovalPanel } from "./claim-approval-panel";
+
+const DECISION_LABELS: Record<string, string> = {
+  approve: "Approved",
+  reject: "High Risk – Manual Review Required",
+  need_review: "Manual Review Required",
+};
 
 export type OverlayStepKey =
   | "document"
@@ -329,12 +337,10 @@ export function ProcessClaimOverlay({
               {/* settlement */}
               {(() => {
                 const state = stageState(STAGE_ORDER, "settlement", currentIdx);
-                const settlement = claim.resultsJson
-                  ? (JSON.parse(claim.resultsJson)?.settlement_result as
-                      | Record<string, unknown>
-                      | null
-                      | undefined)
-                  : null;
+                const settlement = parseResultsJson(claim.resultsJson)?.settlement_result as
+                  | Record<string, unknown>
+                  | null
+                  | undefined;
                 return (
                   <div className="flex gap-4">
                     <div className="flex flex-none flex-col items-center">
@@ -432,25 +438,95 @@ export function ProcessClaimOverlay({
             </div>
 
             {stepKey === "done" && (
-              <div className="mt-1.5 flex items-center gap-3.5 rounded-2xl border border-emerald-400/35 bg-[linear-gradient(120deg,rgba(52,211,153,.16),rgba(34,211,238,.12))] p-4">
-                <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[13px] bg-[linear-gradient(135deg,#10b981,#06b6d4)] shadow-[0_8px_22px_rgba(16,185,129,.45)]">
-                  <CheckCheck className="h-[21px] w-[21px] text-white" />
-                </span>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[14.5px] font-bold text-[#ecfff6]">
-                    Claim processed successfully
+              <div className="mt-1.5 flex flex-col gap-3.5 rounded-2xl border border-emerald-400/35 bg-[linear-gradient(120deg,rgba(52,211,153,.16),rgba(34,211,238,.12))] p-4">
+                <div className="flex items-center gap-3.5">
+                  <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[13px] bg-[linear-gradient(135deg,#10b981,#06b6d4)] shadow-[0_8px_22px_rgba(16,185,129,.45)]">
+                    <CheckCheck className="h-[21px] w-[21px] text-white" />
                   </span>
-                  <span className="text-[12.5px] text-[#a9d9c9]">
-                    Adjuster report ready · {claim.claimNumber} indexed for future similarity search
-                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[14.5px] font-bold text-[#ecfff6]">
+                      Claim processed successfully
+                    </span>
+                    <span className="text-[12.5px] text-[#a9d9c9]">
+                      Adjuster report ready · {claim.claimNumber} indexed for future similarity search
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="ml-auto rounded-full bg-[linear-gradient(110deg,#34d399,#22d3ee)] px-[18px] py-2.5 text-[13px] font-bold text-[#062a1f]"
+                  >
+                    View Results
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="ml-auto rounded-full bg-[linear-gradient(110deg,#34d399,#22d3ee)] px-[18px] py-2.5 text-[13px] font-bold text-[#062a1f]"
-                >
-                  View Results
-                </button>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/[.06] p-3">
+                    <p className="text-[11.5px] font-medium text-[#a9d9c9]">Settlement Decision</p>
+                    <p
+                      className={`mt-1 text-[16px] font-bold ${
+                        claim.settlementDecision === "approve"
+                          ? "text-emerald-300"
+                          : claim.settlementDecision === "reject"
+                            ? "text-red-300"
+                            : "text-amber-300"
+                      }`}
+                    >
+                      {claim.settlementDecision
+                        ? (DECISION_LABELS[claim.settlementDecision] ?? claim.settlementDecision)
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[.06] p-3">
+                    <p className="text-[11.5px] font-medium text-[#a9d9c9]">Recommended Amount</p>
+                    <p className="mt-1 text-[16px] font-bold text-[#eafff5]">
+                      {claim.recommendedAmount !== undefined
+                        ? `₹${claim.recommendedAmount.toLocaleString()}`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[.06] p-3">
+                    <p className="text-[11.5px] font-medium text-[#a9d9c9]">Fraud Score</p>
+                    <p
+                      className={`mt-1 text-[16px] font-bold ${
+                        claim.fraudScore !== undefined && claim.fraudScore >= 50
+                          ? "text-red-300"
+                          : "text-emerald-300"
+                      }`}
+                    >
+                      {claim.fraudScore !== undefined ? `${claim.fraudScore}/100` : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {claim.officerDecision && (
+                  <div className="rounded-xl border border-pink-400/25 bg-pink-400/[.08] p-3">
+                    <p className="text-[11.5px] font-medium text-[#a9d9c9]">
+                      Final Decision (Claims Officer)
+                    </p>
+                    <p className="mt-1 text-[15px] font-bold text-[#eafff5]">
+                      {claim.officerDecision.charAt(0).toUpperCase() + claim.officerDecision.slice(1)}
+                      {claim.officerAmount !== undefined
+                        ? ` — ₹${claim.officerAmount.toLocaleString()}`
+                        : ""}
+                    </p>
+                    {claim.officerNotes && (
+                      <p className="mt-1 text-[13px] text-[#a9d9c9]">{claim.officerNotes}</p>
+                    )}
+                  </div>
+                )}
+
+                {claim.reportUrl && (
+                  <a
+                    href={claim.reportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-fit items-center gap-2 rounded-full border-[1.5px] border-emerald-400/40 bg-white/[.06] px-5 py-2.5 text-[13.5px] font-semibold text-emerald-200 transition-all hover:border-emerald-300 hover:bg-white/[.12]"
+                  >
+                    <Download className="h-[15px] w-[15px]" />
+                    Download Report
+                  </a>
+                )}
               </div>
             )}
           </>
