@@ -4,8 +4,10 @@
 
 from datetime import datetime, timezone
 
+from app.core.constants import SettlementDecision
+from app.models.fraud import FraudResult
 from app.models.policy import PolicyResult
-from app.services.settlement import _apply_policy_deductions
+from app.services.settlement import _apply_policy_deductions, recommend_settlement
 
 
 def _policy(**overrides) -> PolicyResult:
@@ -21,6 +23,16 @@ def _policy(**overrides) -> PolicyResult:
     )
     defaults.update(overrides)
     return PolicyResult(**defaults)
+
+
+def _fraud(**overrides) -> FraudResult:
+    defaults = dict(
+        claim_id="CLM-1",
+        fraud_score=0,
+        processed_at=datetime.now(timezone.utc),
+    )
+    defaults.update(overrides)
+    return FraudResult(**defaults)
 
 
 def test_no_deductions_no_cap():
@@ -97,3 +109,45 @@ def test_sum_insured_above_amount_no_cap():
     assert amount == 100_000.0
     assert billing_validated == 100_000.0
     assert not any("capped" in f for f in factors)
+
+
+def test_coverage_pending_when_no_policy_document():
+    result = recommend_settlement(
+        claim_id="CLM-1",
+        policy_result=None,
+        medical_result=None,
+        billing_result=None,
+        fraud_result=_fraud(),
+    )
+    assert result.approval_status == SettlementDecision.NEED_REVIEW
+    assert result.recommended_amount is None
+    assert "Coverage Pending" in result.reasoning
+    assert any("no policy document uploaded" in f for f in result.contributing_factors)
+
+
+def test_coverage_pending_when_covered_undetermined():
+    result = recommend_settlement(
+        claim_id="CLM-1",
+        policy_result=_policy(covered=None),
+        medical_result=None,
+        billing_result=None,
+        fraud_result=_fraud(),
+    )
+    assert result.approval_status == SettlementDecision.NEED_REVIEW
+    assert "Coverage Pending" in result.reasoning
+    assert any("could not be determined" in f for f in result.contributing_factors)
+
+
+def test_not_covered_when_policy_confirms_no_coverage():
+    result = recommend_settlement(
+        claim_id="CLM-1",
+        policy_result=_policy(covered=False),
+        medical_result=None,
+        billing_result=None,
+        fraud_result=_fraud(),
+    )
+    assert result.approval_status == SettlementDecision.NEED_REVIEW
+    assert result.recommended_amount is None
+    assert "Not Covered" in result.reasoning
+    assert "Coverage Pending" not in result.reasoning
+    assert any("policy confirmed not covered" in f for f in result.contributing_factors)

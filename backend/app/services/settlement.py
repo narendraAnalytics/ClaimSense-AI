@@ -120,12 +120,27 @@ def recommend_settlement(
             factors.extend(deduction_factors)
         else:
             recommended_amount = None
-    elif policy_result is None or not policy_result.covered:
+    elif policy_result is None or policy_result.covered is None:
         decision = SettlementDecision.NEED_REVIEW
-        factors.append("policy not covered")
+        factors.append(
+            "no policy document uploaded — coverage pending"
+            if policy_result is None
+            else "policy coverage could not be determined — coverage pending"
+        )
         reasoning = (
-            "Needs review: the policy coverage decision was not confirmed as covered. "
-            "Recommended for claims officer review before any settlement decision."
+            "Coverage Pending: no policy document was available (or coverage could not be "
+            "determined) for this claim, so coverage, sum insured, deductible, and co-pay "
+            "could not be verified. Recommended for claims officer review — request or "
+            "re-tag the policy document before a settlement decision."
+        )
+        recommended_amount = None
+    elif not policy_result.covered:
+        decision = SettlementDecision.NEED_REVIEW
+        factors.append("policy confirmed not covered")
+        reasoning = (
+            "Not Covered: the policy document was reviewed and coverage was not confirmed "
+            "for this claim. Recommended for claims officer review before any settlement "
+            "decision."
         )
         recommended_amount = None
     elif (
