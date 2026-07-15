@@ -148,7 +148,7 @@ function Dot({
 function Line({ done }: { done: boolean }) {
   return (
     <span
-      className={`my-[3px] w-[2px] flex-1 min-h-[26px] rounded-full transition-colors ${
+      className={`my-[3px] w-[2px] flex-1 min-h-[18px] rounded-full transition-colors ${
         done ? "bg-[linear-gradient(180deg,#10b981,#06b6d4)]" : "bg-white/10"
       }`}
     />
@@ -196,7 +196,7 @@ export function ProcessClaimOverlay({
       aria-modal="true"
       className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_30%_20%,rgba(4,40,32,.92),rgba(3,26,22,.97))] p-[26px] backdrop-blur-[6px]"
     >
-      <div className="relative w-full max-w-[980px] max-h-[92vh] overflow-y-auto rounded-[26px] border border-white/[.14] bg-[linear-gradient(165deg,rgba(255,255,255,.09),rgba(255,255,255,.03))] p-[30px] pb-[26px] shadow-[0_40px_120px_rgba(0,0,0,.5)] backdrop-blur-[30px]">
+      <div className="relative w-full max-w-[980px] rounded-[26px] border border-white/[.14] bg-[linear-gradient(165deg,rgba(255,255,255,.09),rgba(255,255,255,.03))] p-[30px] pb-[26px] shadow-[0_40px_120px_rgba(0,0,0,.5)] backdrop-blur-[30px]">
         <div className="mb-1.5 flex items-center gap-3">
           <span className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-[linear-gradient(135deg,#10b981,#06b6d4)] shadow-[0_8px_20px_rgba(16,185,129,.4)]">
             {failed ? (
@@ -240,7 +240,7 @@ export function ProcessClaimOverlay({
           </div>
         ) : (
           <>
-            <div className="mt-[22px] flex flex-col">
+            <div className="mt-[18px] flex flex-col">
               {SEQUENTIAL_STEPS.map((stg) => {
                 const state = stageState(STAGE_ORDER, stg.key, currentIdx);
                 const Icon = stg.icon;
@@ -251,7 +251,7 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={Icon} />
                       <Line done={state === "done"} />
                     </div>
-                    <div className={`min-w-0 flex-1 ${expanded ? "pb-[16px]" : "pb-2"}`}>
+                    <div className={`min-w-0 flex-1 ${expanded ? "pb-3" : "pb-1.5"}`}>
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span
                           className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
@@ -288,7 +288,7 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={Split} pulseColor="border-cyan-400" />
                       <Line done={state === "done"} />
                     </div>
-                    <div className={`min-w-0 flex-1 ${expanded ? "pb-[16px]" : "pb-2"}`}>
+                    <div className={`min-w-0 flex-1 ${expanded ? "pb-3" : "pb-1.5"}`}>
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
@@ -350,7 +350,7 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={Target} />
                       <Line done={state === "done"} />
                     </div>
-                    <div className={`min-w-0 flex-1 ${state === "done" && settlement ? "pb-[16px]" : expanded ? "pb-[16px]" : "pb-2"}`}>
+                    <div className={`min-w-0 flex-1 ${state === "done" && settlement ? "pb-3" : expanded ? "pb-3" : "pb-1.5"}`}>
                       <span
                         className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
                       >
@@ -387,7 +387,7 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={UserCheck} pulseColor="border-pink-400" />
                       <Line done={state === "done"} />
                     </div>
-                    <div className={`min-w-0 flex-1 ${state === "active" ? "pb-[16px]" : "pb-2"}`}>
+                    <div className={`min-w-0 flex-1 ${state === "active" ? "pb-3" : "pb-1.5"}`}>
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
