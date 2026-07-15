@@ -41,11 +41,20 @@ def _parse_copayment_percent(copayment: str | None) -> float | None:
     return float(match.group(1)) if match else None
 
 
-def _apply_policy_deductions(payable_amount: float, policy_result: PolicyResult) -> tuple[float, list[str]]:
-    """Deterministically applies the policy's deductible then copayment to
-    the billing-validated payable amount, in Python — never trusting an LLM
-    with claim arithmetic, same rationale as payable_amount itself
-    (app/services/billing.py).
+def _apply_policy_deductions(
+    payable_amount: float, policy_result: PolicyResult
+) -> tuple[float, list[str], float]:
+    """Deterministically applies the policy's deductible, then copayment,
+    then a sum-insured cap to the billing-validated payable amount, in
+    Python — never trusting an LLM with claim arithmetic, same rationale as
+    payable_amount itself (app/services/billing.py). In indemnity-based
+    insurance the payable claim cannot exceed the policy's sum insured even
+    if validated bills are higher (see frontend/pdffile.txt).
+
+    Returns (final_amount, factors, billing_validated_amount) — the third
+    value is the amount after deductible/copay but BEFORE any sum-insured
+    cap, preserved for audit/reporting even when the cap reduces the final
+    recommendation.
     """
     factors: list[str] = []
     amount = payable_amount
@@ -63,7 +72,16 @@ def _apply_policy_deductions(payable_amount: float, policy_result: PolicyResult)
     elif copay_percent is None and policy_result.copayment:
         factors.append(f"copayment text '{policy_result.copayment}' could not be parsed — not deducted")
 
-    return round(amount, 2), factors
+    billing_validated_amount = round(amount, 2)
+
+    sum_insured = policy_result.sum_insured
+    if sum_insured is not None and amount > sum_insured:
+        factors.append(
+            f"capped at policy sum insured of {sum_insured} (billing-validated amount was {billing_validated_amount})"
+        )
+        amount = sum_insured
+
+    return round(amount, 2), factors, billing_validated_amount
 
 
 def recommend_settlement(
@@ -74,6 +92,7 @@ def recommend_settlement(
     fraud_result: FraudResult | None,
 ) -> SettlementResult:
     factors: list[str] = []
+    billing_validated_amount: float | None = None
     fraud_score = fraud_result.fraud_score if fraud_result else 0
     factors.append(f"fraud_score={fraud_score}")
 
@@ -95,7 +114,7 @@ def recommend_settlement(
             f"Investigations Unit review before any final decision."
         )
         if billing_result and policy_result and billing_result.payable_amount is not None:
-            recommended_amount, deduction_factors = _apply_policy_deductions(
+            recommended_amount, deduction_factors, billing_validated_amount = _apply_policy_deductions(
                 billing_result.payable_amount, policy_result
             )
             factors.extend(deduction_factors)
@@ -117,7 +136,7 @@ def recommend_settlement(
         factors.append("medical validation inconsistent")
         reasoning = "Needs review: the medical validation found a clinical inconsistency."
         if billing_result and billing_result.payable_amount is not None:
-            recommended_amount, deduction_factors = _apply_policy_deductions(
+            recommended_amount, deduction_factors, billing_validated_amount = _apply_policy_deductions(
                 billing_result.payable_amount, policy_result
             )
             factors.extend(deduction_factors)
@@ -131,7 +150,7 @@ def recommend_settlement(
             f"Recommended for manual investigation before a settlement decision."
         )
         if billing_result and billing_result.payable_amount is not None:
-            recommended_amount, deduction_factors = _apply_policy_deductions(
+            recommended_amount, deduction_factors, billing_validated_amount = _apply_policy_deductions(
                 billing_result.payable_amount, policy_result
             )
             factors.extend(deduction_factors)
@@ -142,7 +161,7 @@ def recommend_settlement(
         factors.append(f"fraud_score >= {_REVIEW_FRAUD_THRESHOLD} (medium fraud risk)")
         reasoning = f"Needs review: fraud score {fraud_score} is elevated but below the high-risk threshold."
         if billing_result and billing_result.payable_amount is not None:
-            recommended_amount, deduction_factors = _apply_policy_deductions(
+            recommended_amount, deduction_factors, billing_validated_amount = _apply_policy_deductions(
                 billing_result.payable_amount, policy_result
             )
             factors.extend(deduction_factors)
@@ -156,7 +175,9 @@ def recommend_settlement(
     else:
         decision = SettlementDecision.APPROVE
         factors.append("policy covered, medical validated, fraud risk low")
-        recommended_amount, deduction_factors = _apply_policy_deductions(billing_result.payable_amount, policy_result)
+        recommended_amount, deduction_factors, billing_validated_amount = _apply_policy_deductions(
+            billing_result.payable_amount, policy_result
+        )
         factors.extend(deduction_factors)
         reasoning = (
             f"Approved: policy covered, medical validation status "
@@ -176,6 +197,7 @@ def recommend_settlement(
         claim_id=claim_id,
         approval_status=decision,
         recommended_amount=recommended_amount,
+        billing_validated_amount=billing_validated_amount,
         confidence=round(confidence, 3),
         reasoning=reasoning,
         contributing_factors=factors,

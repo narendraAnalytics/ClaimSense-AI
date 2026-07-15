@@ -146,10 +146,20 @@ def _build_pdf(state: ClaimState) -> FPDF:
 
     _add_heading(pdf, "Settlement Recommendation")
     if settlement_result:
+        billing_line = ""
+        if (
+            settlement_result.billing_validated_amount is not None
+            and settlement_result.billing_validated_amount != settlement_result.recommended_amount
+        ):
+            billing_line = (
+                f"Billing-validated amount: {settlement_result.billing_validated_amount} "
+                f"(limited by policy sum insured)\n"
+            )
         _add_line(
             pdf,
             f"Decision: {_DECISION_LABELS.get(settlement_result.approval_status, 'Unknown')} | "
             f"Recommended amount: {settlement_result.recommended_amount}\n"
+            f"{billing_line}"
             f"Confidence: {settlement_result.confidence}\n"
             f"Contributing factors: {', '.join(settlement_result.contributing_factors)}",
         )
