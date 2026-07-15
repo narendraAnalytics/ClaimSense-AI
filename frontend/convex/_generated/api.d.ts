@@ -9,9 +9,11 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as backendRegistry from "../backendRegistry.js";
 import type * as checkpoints from "../checkpoints.js";
 import type * as claims from "../claims.js";
 import type * as documents from "../documents.js";
+import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as users from "../users.js";
 
@@ -23,9 +25,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  backendRegistry: typeof backendRegistry;
   checkpoints: typeof checkpoints;
   claims: typeof claims;
   documents: typeof documents;
+  files: typeof files;
   http: typeof http;
   users: typeof users;
 }>;

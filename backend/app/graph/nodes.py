@@ -19,8 +19,8 @@ def policy_node(state: ClaimState) -> dict:
     return policy_run(state)
 
 
-def document_node(state: ClaimState) -> dict:
-    return document_run(state)
+async def document_node(state: ClaimState) -> dict:
+    return await document_run(state)
 
 
 def medical_node(state: ClaimState) -> dict:
@@ -47,5 +47,5 @@ def human_approval_node(state: ClaimState) -> dict:
     return human_approval_run(state)
 
 
-def report_node(state: ClaimState) -> dict:
-    return report_run(state)
+async def report_node(state: ClaimState) -> dict:
+    return await report_run(state)

@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
-from pathlib import Path
+
+import httpx
 
 from app.core.constants import DocumentStatus
 from app.core.logger import logger
 from app.graph.state import ClaimState
 from app.models.document import Document
 from app.models.document_result import DocumentResult
-from app.services import parser
+from app.services import parser, storage
 from app.services.sarvam import SarvamVisionClient, SarvamVisionError, get_sarvam_client
 
 STAGE_NAME = "document"
@@ -17,7 +18,7 @@ STAGE_NAME = "document"
 SUPPORTED_MIME_TYPES = {"application/pdf", "image/jpeg", "image/png"}
 
 
-def run(state: ClaimState) -> dict:
+async def run(state: ClaimState) -> dict:
     documents = state["documents"]
 
     if not documents:
@@ -35,7 +36,7 @@ def run(state: ClaimState) -> dict:
     errors: list[str] = []
 
     for document in documents:
-        result = _extract_one(client, document)
+        result = await _extract_one(client, document)
         results.append(result)
         if result.error:
             errors.append(f"{document.filename}: {result.error}")
@@ -67,7 +68,7 @@ def run(state: ClaimState) -> dict:
     }
 
 
-def _extract_one(client: SarvamVisionClient, document: Document) -> DocumentResult:
+async def _extract_one(client: SarvamVisionClient, document: Document) -> DocumentResult:
     if document.mime_type not in SUPPORTED_MIME_TYPES:
         message = f"Unsupported mime type '{document.mime_type}' for Sarvam Vision"
         logger.warning(f"[{STAGE_NAME}] {message} (document {document.document_id})")
@@ -83,14 +84,14 @@ def _extract_one(client: SarvamVisionClient, document: Document) -> DocumentResu
         )
 
     try:
-        document_bytes = Path(document.storage_path).read_bytes()
+        document_bytes = await storage.get_file_bytes(document.storage_id)
         zip_bytes = client.extract_document(
             document_bytes=document_bytes,
             filename=document.filename,
             content_type=document.mime_type,
         )
         return parser.parse_extraction_zip(zip_bytes, document)
-    except (SarvamVisionError, parser.DocumentParseError, OSError) as exc:
+    except (SarvamVisionError, parser.DocumentParseError, storage.FileStorageError, httpx.HTTPError) as exc:
         logger.error(f"[{STAGE_NAME}] failed to process document {document.document_id}: {exc}")
         return DocumentResult(
             document_id=document.document_id,

@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 
 from app.api.deps import get_existing_claim
 from app.core.constants import ClaimStatus
@@ -14,21 +13,17 @@ from app.schemas.claim import (
     OfficerDecisionRequest,
     ProcessClaimResponse,
 )
-from app.services import workflow
-from app.services.claim_registry import add_claim
-from app.services.document_registry import get_documents_for_claim
-from app.services.report_generator import REPORTS_DIR
+from app.services import convex_registry, storage, workflow
 from app.utils.ids import generate_claim_id
 
 router = APIRouter(tags=["claims"])
 
 
 @router.post("/claims", response_model=CreateClaimResponse)
-def create_claim(request: CreateClaimRequest) -> CreateClaimResponse:
+async def create_claim(request: CreateClaimRequest) -> CreateClaimResponse:
     now = datetime.now(timezone.utc)
     claim_id = generate_claim_id()
 
-    # No database persistence yet — held in-memory until Convex is wired up in a later phase.
     claim = Claim(
         claim_id=claim_id,
         policy_number=request.policy_number,
@@ -40,7 +35,7 @@ def create_claim(request: CreateClaimRequest) -> CreateClaimResponse:
         created_at=now,
         updated_at=now,
     )
-    add_claim(claim)
+    await convex_registry.save_claim(claim)
 
     # Deliberately does NOT invoke the pipeline graph here (it used to, as a
     # Phase 5 orchestration smoke test) — with checkpointing wired in
@@ -112,7 +107,7 @@ async def process_claim(
         ),
     ),
 ) -> ProcessClaimResponse:
-    documents = get_documents_for_claim(claim.claim_id)
+    documents = await convex_registry.list_documents_for_claim(claim.claim_id)
 
     # Checkpointed: a claim already fully processed returns its cached final
     # state instantly (no repeat OCR/LLM calls/credits) unless force=true.
@@ -120,6 +115,7 @@ async def process_claim(
 
     claim.status = result["status"]
     claim.updated_at = result["updated_at"]
+    await convex_registry.update_claim_status(claim.claim_id, claim.status)
 
     if claim.status == ClaimStatus.AWAITING_APPROVAL:
         message = "Claim processing paused: awaiting claims officer decision"
@@ -145,6 +141,7 @@ async def submit_decision(
 
     claim.status = ClaimStatus.REJECTED if request.decision == "reject" else ClaimStatus.APPROVED
     claim.updated_at = result["updated_at"]
+    await convex_registry.update_claim_status(claim.claim_id, claim.status)
 
     message = (
         "Claim finalized by claims officer"
@@ -156,20 +153,18 @@ async def submit_decision(
 
 
 @router.get("/claims/{claim_id}/report")
-def download_report(claim: Claim = Depends(get_existing_claim)) -> FileResponse:
-    # Reads the PDF the Report agent already wrote to disk during a prior
-    # POST /process call, using report_generator's deterministic naming
-    # convention — deliberately does NOT re-run the graph (that would
-    # re-spend real Sarvam credits on every download, same reasoning as
-    # why there's no checkpointing yet, see backend/CLAUDE.md).
-    report_path = REPORTS_DIR / f"{claim.claim_id}.pdf"
-    if not report_path.exists():
+async def download_report(claim: Claim = Depends(get_existing_claim)) -> RedirectResponse:
+    # Redirects to the PDF's Convex File Storage URL (uploaded by the Report
+    # agent during a prior POST /process call) — deliberately does NOT
+    # re-run the graph (that would re-spend real Sarvam credits on every
+    # download, same reasoning as why there's no eager re-processing
+    # elsewhere, see backend/CLAUDE.md) and no longer reads from local disk,
+    # which doesn't survive a restart/redeploy.
+    storage_id = await convex_registry.get_report_storage_id(claim.claim_id)
+    if storage_id is None:
         raise HTTPException(
             status_code=404, detail="Report not yet generated for this claim — call /process first"
         )
 
-    return FileResponse(
-        path=str(report_path),
-        media_type="application/pdf",
-        filename=f"{claim.claim_id}_report.pdf",
-    )
+    url = await storage.get_file_url(storage_id)
+    return RedirectResponse(url)

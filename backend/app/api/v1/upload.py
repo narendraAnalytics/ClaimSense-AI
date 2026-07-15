@@ -7,9 +7,7 @@ from app.core.constants import ClaimStatus, DocumentType
 from app.models.claim import Claim
 from app.models.document import Document
 from app.schemas.upload import UploadedDocument, UploadError, UploadResponse
-from app.services import storage
-from app.services.claim_registry import attach_document
-from app.services.document_registry import add_document
+from app.services import convex_registry, storage
 
 router = APIRouter(tags=["upload"])
 
@@ -39,8 +37,11 @@ async def upload_documents(
             continue
 
         document_id = storage.generate_document_id()
-        path = await storage.save_temp_file(upload_file, claim.claim_id, document_id)
-        metadata = storage.get_file_metadata(path, upload_file)
+        data = await upload_file.read()
+        metadata = storage.get_file_metadata(upload_file, data)
+        storage_id = await storage.upload_file_bytes(
+            data, metadata["filename"], metadata["mime_type"]
+        )
 
         document = Document(
             document_id=document_id,
@@ -50,11 +51,11 @@ async def upload_documents(
             extension=metadata["extension"],
             size=metadata["size"],
             document_type=document_type,
-            storage_path=str(path),
+            storage_id=storage_id,
             uploaded_at=metadata["uploaded_at"],
         )
-        add_document(document)
-        attach_document(claim.claim_id, document.document_id)
+        await convex_registry.save_document(document)
+        await convex_registry.attach_document(claim.claim_id, document.document_id)
 
         uploaded.append(
             UploadedDocument(
@@ -70,6 +71,7 @@ async def upload_documents(
     if uploaded:
         claim.status = ClaimStatus.DOCUMENTS_RECEIVED
         claim.updated_at = datetime.now(timezone.utc)
+        await convex_registry.update_claim_status(claim.claim_id, claim.status)
 
     return UploadResponse(
         claim_id=claim.claim_id,

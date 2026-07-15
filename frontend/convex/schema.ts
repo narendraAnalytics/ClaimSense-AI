@@ -72,6 +72,39 @@ const schema = defineSchema({
     type: v.string(),
     value: v.string(),
   }).index("by_checkpoint", ["threadId", "checkpointNs", "checkpointId"]),
+
+  // Backend's own claim/document registries, migrated off in-memory Python
+  // dicts. Not user-scoped / not driven by Convex Auth — keyed by the
+  // backend's own claim_id/document_id strings, written only via internal
+  // functions called by the FastAPI backend using its admin deploy key.
+  // Deliberately separate from the user-facing `claims`/`documents` tables
+  // above, which stay browser/Convex-Auth-owned.
+  backendClaims: defineTable({
+    claimId: v.string(),
+    policyNumber: v.string(),
+    claimantName: v.string(),
+    claimType: v.string(),
+    incidentDate: v.string(),
+    incidentDescription: v.string(),
+    status: v.string(),
+    documentIds: v.array(v.string()),
+    reportStorageId: v.optional(v.id("_storage")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_claim_id", ["claimId"]),
+
+  backendDocuments: defineTable({
+    documentId: v.string(),
+    claimId: v.string(),
+    filename: v.string(),
+    mimeType: v.string(),
+    extension: v.string(),
+    size: v.number(),
+    documentType: v.string(),
+    storageId: v.id("_storage"),
+    uploadedAt: v.number(),
+    uploadStatus: v.string(),
+  }).index("by_claim_id", ["claimId"]),
 });
 
 export default schema;

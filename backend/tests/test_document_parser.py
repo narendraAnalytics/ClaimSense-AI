@@ -17,7 +17,7 @@ def _sample_document() -> Document:
         extension=".pdf",
         size=237436,
         document_type=DocumentType.POLICY,
-        storage_path=str(FIXTURES_DIR / "claim_form.pdf"),
+        storage_id="test-storage-id",
         uploaded_at=datetime.now(timezone.utc),
     )
 

@@ -1,17 +1,13 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
-from app.core.config import settings
 from app.core.constants import SettlementDecision
 from app.core.logger import logger
 from app.graph.state import ClaimState
 from app.models.report import ReportResult
-from app.services import history_store
-
-REPORTS_DIR = Path(settings.upload_dir).parent / "reports"
+from app.services import convex_registry, history_store, storage
 
 # Displayed labels only — the underlying SettlementDecision values ("approve"/
 # "reject"/"need_review") are unchanged; production insurance workflows have
@@ -178,14 +174,18 @@ def _build_pdf(state: ClaimState) -> FPDF:
     return pdf
 
 
-def generate_report(state: ClaimState) -> ReportResult:
+async def generate_report(state: ClaimState) -> ReportResult:
     claim = state["claim"]
     try:
         pdf = _build_pdf(state)
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        destination = REPORTS_DIR / f"{claim.claim_id}.pdf"
-        pdf.output(str(destination))
+        pdf_bytes = bytes(pdf.output())
         page_count = pdf.page_no()
+
+        storage_id = await storage.upload_file_bytes(
+            pdf_bytes, f"{claim.claim_id}.pdf", "application/pdf"
+        )
+        await convex_registry.set_report_storage_id(claim.claim_id, storage_id)
+        report_url = await storage.get_file_url(storage_id)
 
         settlement_result = state.get("settlement_result")
         human_decision = state.get("human_decision")
@@ -213,7 +213,7 @@ def generate_report(state: ClaimState) -> ReportResult:
 
         return ReportResult(
             claim_id=claim.claim_id,
-            report_url=str(destination),
+            report_url=report_url,
             page_count=page_count,
             processed_at=datetime.now(timezone.utc),
         )

@@ -13,6 +13,6 @@ class Document(BaseModel):
     extension: str
     size: int
     document_type: DocumentType
-    storage_path: str
+    storage_id: str
     uploaded_at: datetime
     upload_status: str = "stored"

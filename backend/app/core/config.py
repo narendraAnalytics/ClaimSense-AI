@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     sarvam_chat_max_input_chars: int = 30000
     convex_url: str = ""
     convex_deploy_key: str = ""
+    # The .convex.site domain httpActions live on, distinct from convex_url's
+    # .convex.cloud (RPC endpoint) — used only for the raw-bytes file-storage
+    # bridge (see app/services/storage.py), since ctx.storage.store() needs
+    # actual request bytes that the convex-py client's JSON-args RPC can't carry.
+    convex_site_url: str = ""
+    backend_upload_secret: str = ""
     qdrant_api_key: str = ""
     qdrant_url: str = ""
     uploadthing_token: str = ""

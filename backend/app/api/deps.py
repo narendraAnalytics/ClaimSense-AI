@@ -2,11 +2,11 @@ from fastapi import HTTPException, Request
 
 from app.core.config import settings
 from app.models.claim import Claim
-from app.services.claim_registry import get_claim
+from app.services.convex_registry import load_claim
 
 
-def get_existing_claim(claim_id: str) -> Claim:
-    claim = get_claim(claim_id)
+async def get_existing_claim(claim_id: str) -> Claim:
+    claim = await load_claim(claim_id)
     if claim is None:
         raise HTTPException(status_code=404, detail=f"Claim '{claim_id}' not found")
     return claim
