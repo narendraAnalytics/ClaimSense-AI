@@ -246,6 +246,22 @@ export function ClaimApprovalPanel({
         </button>
       </div>
 
+      {submitting !== null && (
+        <div
+          className={
+            dark
+              ? "flex items-center gap-2.5 rounded-xl border border-cyan-400/25 bg-cyan-400/[.08] px-4 py-3"
+              : "flex items-center gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-50/70 px-4 py-3"
+          }
+        >
+          <Loader2 className={`h-[16px] w-[16px] flex-none animate-spin ${dark ? "text-cyan-300" : "text-[#0e8a6d]"}`} />
+          <p className={`text-[13px] ${dark ? "text-cyan-100" : "text-[#0c2b24]"}`}>
+            Processing your decision — generating the final report and PDF. This can take up to a
+            minute. Keep this page open, the result and download link will appear here automatically.
+          </p>
+        </div>
+      )}
+
       {error && <p className={`text-[13.5px] ${dark ? "text-red-300" : "text-red-600"}`}>{error}</p>}
     </div>
   );

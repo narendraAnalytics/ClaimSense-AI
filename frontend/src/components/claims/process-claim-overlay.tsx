@@ -17,7 +17,6 @@ import {
   Network,
   Loader2,
   CircleCheck,
-  Circle,
   TriangleAlert,
   Download,
 } from "lucide-react";
@@ -245,13 +244,14 @@ export function ProcessClaimOverlay({
               {SEQUENTIAL_STEPS.map((stg) => {
                 const state = stageState(STAGE_ORDER, stg.key, currentIdx);
                 const Icon = stg.icon;
+                const expanded = state === "active";
                 return (
                   <div key={stg.key} className="flex gap-4">
                     <div className="flex flex-none flex-col items-center">
                       <Dot state={state} icon={Icon} />
                       <Line done={state === "done"} />
                     </div>
-                    <div className="min-w-0 flex-1 pb-[22px]">
+                    <div className={`min-w-0 flex-1 ${expanded ? "pb-[16px]" : "pb-2"}`}>
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span
                           className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
@@ -261,14 +261,17 @@ export function ProcessClaimOverlay({
                         <span className="rounded-full border border-white/10 bg-white/[.08] px-2.5 py-0.5 text-[11px] text-[#9fe6cf]">
                           {stg.tag}
                         </span>
+                        {state === "done" && <CircleCheck className="h-4 w-4 text-emerald-400" />}
                       </div>
-                      <p className="mt-1 max-w-[640px] text-[13px] leading-[1.55] text-[#a9d9c9]">
-                        {stg.desc}
-                      </p>
-                      {state === "active" && (
-                        <div className="mt-2.5 h-[5px] w-[220px] overflow-hidden rounded-full bg-white/[.08]">
-                          <div className="h-full w-[70%] rounded-full bg-[linear-gradient(90deg,#10b981,#22d3ee)] transition-[width] duration-500" />
-                        </div>
+                      {expanded && (
+                        <>
+                          <p className="mt-1 max-w-[640px] text-[13px] leading-[1.55] text-[#a9d9c9]">
+                            {stg.desc}
+                          </p>
+                          <div className="mt-2.5 h-[5px] w-[220px] overflow-hidden rounded-full bg-white/[.08]">
+                            <div className="h-full w-[70%] rounded-full bg-[linear-gradient(90deg,#10b981,#22d3ee)] transition-[width] duration-500" />
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -278,13 +281,14 @@ export function ProcessClaimOverlay({
               {/* parallel group */}
               {(() => {
                 const state = stageState(STAGE_ORDER, "parallel", currentIdx);
+                const expanded = state === "active";
                 return (
                   <div className="flex gap-4">
                     <div className="flex flex-none flex-col items-center">
                       <Dot state={state} icon={Split} pulseColor="border-cyan-400" />
                       <Line done={state === "done"} />
                     </div>
-                    <div className="min-w-0 flex-1 pb-[22px]">
+                    <div className={`min-w-0 flex-1 ${expanded ? "pb-[16px]" : "pb-2"}`}>
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
@@ -294,43 +298,39 @@ export function ProcessClaimOverlay({
                         <span className="rounded-full border border-white/10 bg-white/[.08] px-2.5 py-0.5 text-[11px] text-[#9fe6cf]">
                           Parallel execution
                         </span>
+                        {state === "done" && <CircleCheck className="h-4 w-4 text-emerald-400" />}
                       </div>
-                      <p className="mb-3 mt-1 text-[13px] text-[#a9d9c9]">
-                        Three agents run simultaneously — the graph waits for the slowest to finish.
-                      </p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {PARALLEL_CARDS.map((pc) => {
-                          const PcIcon = pc.icon;
-                          const StateIcon =
-                            state === "done" ? CircleCheck : state === "active" ? Loader2 : Circle;
-                          return (
-                            <div
-                              key={pc.name}
-                              className="flex flex-col gap-1.5 rounded-[14px] border border-white/10 bg-white/[.04] p-3"
-                            >
-                              <div className="flex items-center gap-2">
-                                <PcIcon className={`h-[15px] w-[15px] ${pc.color}`} />
-                                <span className="text-[12px] font-bold text-[#eafff5]">{pc.name}</span>
-                                <StateIcon
-                                  className={`ml-auto h-[13px] w-[13px] ${pc.color} ${
-                                    state === "active" ? "animate-spin" : ""
-                                  }`}
-                                />
-                              </div>
-                              <div className="h-1 overflow-hidden rounded-full bg-white/10">
+                      {expanded && (
+                        <>
+                          <p className="mb-3 mt-1 text-[13px] text-[#a9d9c9]">
+                            Three agents run simultaneously — the graph waits for the slowest to finish.
+                          </p>
+                          <div className="grid grid-cols-3 gap-3">
+                            {PARALLEL_CARDS.map((pc) => {
+                              const PcIcon = pc.icon;
+                              const StateIcon = Loader2;
+                              return (
                                 <div
-                                  className={`h-full rounded-full transition-[width] duration-500 ${pc.bar} ${
-                                    state === "done" ? "w-full" : state === "active" ? "w-[65%]" : "w-0"
-                                  }`}
-                                />
-                              </div>
-                              <span className="text-[10.5px] text-[#9fc9bb]">
-                                {state === "done" ? "Complete" : state === "active" ? "Running…" : "Queued"}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                                  key={pc.name}
+                                  className="flex flex-col gap-1.5 rounded-[14px] border border-white/10 bg-white/[.04] p-3"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <PcIcon className={`h-[15px] w-[15px] ${pc.color}`} />
+                                    <span className="text-[12px] font-bold text-[#eafff5]">{pc.name}</span>
+                                    <StateIcon className={`ml-auto h-[13px] w-[13px] ${pc.color} animate-spin`} />
+                                  </div>
+                                  <div className="h-1 overflow-hidden rounded-full bg-white/10">
+                                    <div
+                                      className={`h-full w-[65%] rounded-full transition-[width] duration-500 ${pc.bar}`}
+                                    />
+                                  </div>
+                                  <span className="text-[10.5px] text-[#9fc9bb]">Running…</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -339,6 +339,7 @@ export function ProcessClaimOverlay({
               {/* settlement */}
               {(() => {
                 const state = stageState(STAGE_ORDER, "settlement", currentIdx);
+                const expanded = state === "active";
                 const settlement = parseResultsJson(claim.resultsJson)?.settlement_result as
                   | Record<string, unknown>
                   | null
@@ -349,15 +350,17 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={Target} />
                       <Line done={state === "done"} />
                     </div>
-                    <div className="min-w-0 flex-1 pb-[22px]">
+                    <div className={`min-w-0 flex-1 ${state === "done" && settlement ? "pb-[16px]" : expanded ? "pb-[16px]" : "pb-2"}`}>
                       <span
                         className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
                       >
                         Settlement Recommendation
                       </span>
-                      <p className="mt-1 text-[13px] text-[#a9d9c9]">
-                        Deterministic rule cascade combines every agent's findings into a payable amount.
-                      </p>
+                      {expanded && (
+                        <p className="mt-1 text-[13px] text-[#a9d9c9]">
+                          Deterministic rule cascade combines every agent's findings into a payable amount.
+                        </p>
+                      )}
                       {state === "done" && settlement && (
                         <div className="mt-2.5 inline-flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[.14] px-3.5 py-2">
                           <CircleCheck className="h-4 w-4 text-emerald-400" />
@@ -384,7 +387,7 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={UserCheck} pulseColor="border-pink-400" />
                       <Line done={state === "done"} />
                     </div>
-                    <div className="min-w-0 flex-1 pb-[22px]">
+                    <div className={`min-w-0 flex-1 ${state === "active" ? "pb-[16px]" : "pb-2"}`}>
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
@@ -425,14 +428,19 @@ export function ProcessClaimOverlay({
                       <Dot state={state} icon={FileCheck2} />
                     </div>
                     <div className="min-w-0 flex-1 pb-1">
-                      <span
-                        className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
-                      >
-                        Report Generation
-                      </span>
-                      <p className="mt-1 text-[13px] text-[#a9d9c9]">
-                        Builds the adjuster-ready PDF and indexes the claim for future similarity search.
-                      </p>
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`text-[15px] font-bold ${state === "pending" ? "text-[#7fa697]" : "text-[#eafff5]"}`}
+                        >
+                          Report Generation
+                        </span>
+                        {state === "done" && <CircleCheck className="h-4 w-4 text-emerald-400" />}
+                      </div>
+                      {state === "active" && (
+                        <p className="mt-1 text-[13px] text-[#a9d9c9]">
+                          Builds the adjuster-ready PDF and indexes the claim for future similarity search.
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
