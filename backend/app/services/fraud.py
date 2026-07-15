@@ -26,7 +26,10 @@ _FRAUD_JSON_SCHEMA = {
         "properties": {
             "fraud_score": {"type": "integer"},
             "red_flags": {"type": "array", "items": {"type": "string"}},
-            "narrative_medical_consistency": {"type": ["boolean", "null"]},
+            "narrative_mismatch_severity": {
+                "type": "string",
+                "enum": ["none", "minor", "moderate", "major"],
+            },
             "duplicate_invoice_suspected": {"type": "boolean"},
             "altered_document_suspected": {"type": "boolean"},
             "suspicious_timing": {"type": "boolean"},
@@ -37,7 +40,7 @@ _FRAUD_JSON_SCHEMA = {
         "required": [
             "fraud_score",
             "red_flags",
-            "narrative_medical_consistency",
+            "narrative_mismatch_severity",
             "duplicate_invoice_suspected",
             "altered_document_suspected",
             "suspicious_timing",
@@ -55,11 +58,11 @@ _REPAIR_REMINDER = (
 
 _SUPPORTING_DOCUMENT_TYPES = {DocumentType.HOSPITAL_BILL.value, DocumentType.DISCHARGE_SUMMARY.value}
 
-# Enforced floor when narrative_medical_consistency is False — see
-# convert_to_model(). Matches Settlement's existing 30-69 "need_review"
-# band, so a narrative mismatch alone is enough to force a review without
-# needing additional red flags to reach that threshold.
-_NARRATIVE_MISMATCH_FRAUD_FLOOR = 50
+# Graduated score addition by narrative_mismatch_severity — see
+# convert_to_model(). Replaces a flat floor with penalties proportional to
+# how severe the mismatch actually is, so a minor wording difference
+# doesn't get treated the same as a wholesale contradiction.
+_NARRATIVE_MISMATCH_PENALTY = {"minor": 10, "moderate": 20, "major": 35}
 
 
 class FraudServiceError(Exception):
@@ -68,6 +71,8 @@ class FraudServiceError(Exception):
 
 def _fraud_level(score: int) -> FraudLevel:
     if score >= 70:
+        return FraudLevel.CRITICAL
+    if score >= 50:
         return FraudLevel.HIGH
     if score >= 30:
         return FraudLevel.MEDIUM
@@ -161,22 +166,22 @@ def validate_response(raw_content: str | None, messages: list[dict]) -> dict:
 def convert_to_model(parsed: dict, claim: Claim) -> FraudResult:
     score = int(parsed.get("fraud_score", 0))
     red_flags = list(parsed.get("red_flags", []))
-    narrative_consistent = parsed.get("narrative_medical_consistency")
+    severity = parsed.get("narrative_mismatch_severity") or "none"
 
     # Enforce the consequence of the model's own narrative-mismatch
     # judgment deterministically — don't trust the model's self-reported
-    # score for this specific high-signal case, same rationale as
-    # deriving fraud_level from fraud_score below rather than trusting a
-    # model-authored level. Live testing showed the model can correctly
-    # narrate a narrative/evidence mismatch in `reasoning` while still
-    # under-scoring it in the structured fields; this is a backstop for
-    # that failure mode, not a replacement for the prompt asking for it.
-    if narrative_consistent is False:
-        score = max(score, _NARRATIVE_MISMATCH_FRAUD_FLOOR)
+    # overall score for this specific signal, same rationale as deriving
+    # fraud_level from fraud_score below rather than trusting a
+    # model-authored level. Graduated by severity rather than a flat floor,
+    # so a minor wording difference isn't scored the same as a wholesale
+    # contradiction.
+    penalty = _NARRATIVE_MISMATCH_PENALTY.get(severity, 0)
+    if penalty:
+        score = min(100, score + penalty)
         if not any("narrative" in flag.lower() for flag in red_flags):
             red_flags.append(
-                "Claim's stated incident does not match the medical evidence "
-                "(narrative_medical_consistency=false)"
+                f"Claim's stated incident does not match the medical evidence "
+                f"(narrative_mismatch_severity={severity})"
             )
 
     try:
@@ -185,7 +190,7 @@ def convert_to_model(parsed: dict, claim: Claim) -> FraudResult:
             fraud_score=score,
             fraud_level=_fraud_level(score),
             red_flags=red_flags,
-            narrative_medical_consistency=narrative_consistent,
+            narrative_mismatch_severity=severity,
             duplicate_invoice_suspected=parsed.get("duplicate_invoice_suspected", False),
             altered_document_suspected=parsed.get("altered_document_suspected", False),
             suspicious_timing=parsed.get("suspicious_timing", False),

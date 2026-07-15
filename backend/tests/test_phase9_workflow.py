@@ -68,21 +68,29 @@ def test_full_claim_pipeline_completes_all_nine_agents():
     # The fixture claim's own narrative ("appendicitis surgery") doesn't
     # match the real medical documents (dengue fever) — this is a known,
     # deliberate mismatch in the test data used to verify Fraud actually
-    # catches it: narrative_medical_consistency must come back false, the
-    # score must be forced to at least the enforced floor (see
-    # app/services/fraud.py::_NARRATIVE_MISMATCH_FRAUD_FLOOR), and a
+    # catches it: narrative_mismatch_severity must come back "major" (a
+    # different diagnosis entirely, not just a wording difference), the
+    # graduated penalty (see app/services/fraud.py::_NARRATIVE_MISMATCH_PENALTY)
+    # must have been applied on top of the model's own base score, and a
     # narrative-mismatch red flag must be present.
-    assert fraud["narrative_medical_consistency"] is False
-    assert fraud["fraud_score"] >= 50
+    assert fraud["narrative_mismatch_severity"] == "major"
+    assert fraud["fraud_score"] >= 35
     assert any("narrative" in flag.lower() for flag in fraud["red_flags"])
 
     settlement = body["settlement_result"]
     assert settlement is not None
-    assert settlement["approval_status"] in ("approve", "reject", "need_review")
-    # A fraud score >= 50 lands in Settlement's existing need_review band
-    # (30 <= fraud_score < 70) — confirms the fraud fix actually changes
-    # the downstream settlement decision, not just an isolated field.
-    assert settlement["approval_status"] == "need_review"
+    assert settlement["approval_status"] in (
+        "approve",
+        "need_review",
+        "manual_investigation",
+        "siu_review",
+        "incomplete_documentation",
+    )
+    # A major narrative mismatch adds +35 to the base fraud score, which
+    # lands in one of Settlement's review-or-above bands (>= 30) rather
+    # than a flat "reject" — confirms the fraud fix actually changes the
+    # downstream settlement decision, not just an isolated field.
+    assert settlement["approval_status"] in ("need_review", "manual_investigation", "siu_review")
 
     report = body["report_result"]
     assert report is not None

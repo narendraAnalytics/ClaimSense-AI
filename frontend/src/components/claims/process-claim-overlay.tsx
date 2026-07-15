@@ -26,9 +26,11 @@ import { parseResultsJson } from "@/lib/backend-api";
 import { ClaimApprovalPanel } from "./claim-approval-panel";
 
 const DECISION_LABELS: Record<string, string> = {
-  approve: "Approved",
-  reject: "High Risk – Manual Review Required",
-  need_review: "Manual Review Required",
+  approve: "Low Risk – Recommended for Approval",
+  need_review: "Medium Risk – Claims Officer Review",
+  manual_investigation: "High Risk – Manual Investigation",
+  siu_review: "Critical Risk – SIU Review",
+  incomplete_documentation: "Incomplete Documentation – Additional Documents Required",
 };
 
 export type OverlayStepKey =
@@ -467,9 +469,13 @@ export function ProcessClaimOverlay({
                       className={`mt-1 text-[16px] font-bold ${
                         claim.settlementDecision === "approve"
                           ? "text-emerald-300"
-                          : claim.settlementDecision === "reject"
+                          : claim.settlementDecision === "siu_review"
                             ? "text-red-300"
-                            : "text-amber-300"
+                            : claim.settlementDecision === "manual_investigation"
+                              ? "text-orange-300"
+                              : claim.settlementDecision === "incomplete_documentation"
+                                ? "text-slate-300"
+                                : "text-amber-300"
                       }`}
                     >
                       {claim.settlementDecision

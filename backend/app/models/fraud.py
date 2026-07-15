@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +15,7 @@ class FraudResult(BaseModel):
     # not left to the model to self-report.
     fraud_level: FraudLevel = FraudLevel.LOW
     red_flags: list[str] = Field(default_factory=list)
-    narrative_medical_consistency: bool | None = None
+    narrative_mismatch_severity: Literal["none", "minor", "moderate", "major"] | None = None
     duplicate_invoice_suspected: bool = False
     altered_document_suspected: bool = False
     suspicious_timing: bool = False

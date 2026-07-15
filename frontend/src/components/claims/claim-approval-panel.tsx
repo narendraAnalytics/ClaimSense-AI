@@ -8,9 +8,11 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import { submitDecision, getReportUrl, parseResultsJson } from "@/lib/backend-api";
 
 const DECISION_LABELS: Record<string, string> = {
-  approve: "Approved",
-  reject: "High Risk – Manual Review Required",
-  need_review: "Manual Review Required",
+  approve: "Low Risk – Recommended for Approval",
+  need_review: "Medium Risk – Claims Officer Review",
+  manual_investigation: "High Risk – Manual Investigation",
+  siu_review: "Critical Risk – SIU Review",
+  incomplete_documentation: "Incomplete Documentation – Additional Documents Required",
 };
 
 function StatCard({
@@ -63,7 +65,15 @@ export function ClaimApprovalPanel({
   const settlement = results?.settlement_result as Record<string, unknown> | null | undefined;
   const decision = settlement?.approval_status as string | undefined;
   const decisionTone =
-    decision === "approve" ? "text-emerald-600" : decision === "reject" ? "text-red-600" : "text-amber-600";
+    decision === "approve"
+      ? "text-emerald-600"
+      : decision === "siu_review"
+        ? "text-red-600"
+        : decision === "manual_investigation"
+          ? "text-orange-600"
+          : decision === "incomplete_documentation"
+            ? "text-slate-600"
+            : "text-amber-600";
 
   async function handleDecision(decisionType: "approve" | "reject" | "modify") {
     setError(null);

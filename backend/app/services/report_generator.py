@@ -9,14 +9,16 @@ from app.graph.state import ClaimState
 from app.models.report import ReportResult
 from app.services import convex_registry, history_store, storage
 
-# Displayed labels only — the underlying SettlementDecision values ("approve"/
-# "reject"/"need_review") are unchanged; production insurance workflows have
-# the AI recommend/flag, not issue an absolute "reject", so the report/UI
-# never shows that raw value directly.
+# Displayed labels only — the underlying SettlementDecision values are
+# unchanged; production insurance workflows have the AI recommend/flag by
+# risk band, not issue an absolute reject, so the report/UI never shows a
+# raw "rejected" outcome — every band still reaches Human Approval.
 _DECISION_LABELS = {
-    SettlementDecision.APPROVE: "Approved",
-    SettlementDecision.REJECT: "High Risk - Manual Review Required",
-    SettlementDecision.NEED_REVIEW: "Manual Review Required",
+    SettlementDecision.APPROVE: "Low Risk - Recommended for Approval",
+    SettlementDecision.NEED_REVIEW: "Medium Risk - Claims Officer Review",
+    SettlementDecision.MANUAL_INVESTIGATION: "High Risk - Manual Investigation",
+    SettlementDecision.SIU_REVIEW: "Critical Risk - SIU Review",
+    SettlementDecision.INCOMPLETE_DOCUMENTATION: "Incomplete Documentation - Additional Documents Required",
 }
 
 

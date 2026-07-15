@@ -13,7 +13,13 @@ from app.models.settlement import SettlementResult
 # transparency expectations), so Settlement aggregates the already-reasoned
 # outputs of Policy/Medical/Billing/Fraud through a fixed rule cascade
 # rather than a 5th opaque model call.
-_HIGH_FRAUD_THRESHOLD = 70
+#
+# Risk bands (matches app/core/constants.py's SettlementDecision): 0-29 Low
+# (approve), 30-49 Medium (need_review), 50-69 High (manual_investigation),
+# 70-100 Critical (siu_review). None of these are an absolute reject — every
+# outcome still pauses at Human Approval, so the AI only ever recommends.
+_SIU_FRAUD_THRESHOLD = 70
+_MANUAL_INVESTIGATION_FRAUD_THRESHOLD = 50
 _REVIEW_FRAUD_THRESHOLD = 30
 
 _COPAY_PERCENT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%")
@@ -72,32 +78,37 @@ def recommend_settlement(
     factors.append(f"fraud_score={fraud_score}")
 
     if fraud_result is None:
-        decision = SettlementDecision.REJECT
+        decision = SettlementDecision.INCOMPLETE_DOCUMENTATION
         factors.append("fraud assessment unavailable (no documents successfully processed)")
         reasoning = (
-            "High Risk - Manual Review Required: fraud assessment could not be completed "
-            "because no documents were successfully processed for this claim. Recommended "
-            "for manual investigation before any settlement decision."
+            "Incomplete Documentation: no documents were successfully processed for this "
+            "claim, so a fraud assessment could not be completed. Additional/clearer "
+            "documents are needed before a settlement recommendation can be made."
         )
-        recommended_amount = 0.0
-    elif fraud_score >= _HIGH_FRAUD_THRESHOLD:
-        decision = SettlementDecision.REJECT
-        factors.append(f"fraud_score >= {_HIGH_FRAUD_THRESHOLD} (high fraud risk)")
+        recommended_amount = None
+    elif fraud_score >= _SIU_FRAUD_THRESHOLD:
+        decision = SettlementDecision.SIU_REVIEW
+        factors.append(f"fraud_score >= {_SIU_FRAUD_THRESHOLD} (critical fraud risk)")
         reasoning = (
-            f"High Risk - Manual Review Required: fraud score {fraud_score} meets or exceeds "
-            f"the high-risk threshold of {_HIGH_FRAUD_THRESHOLD}. Recommended for manual "
-            f"investigation before any settlement decision."
+            f"Critical Risk - SIU Review: fraud score {fraud_score} meets or exceeds the "
+            f"critical-risk threshold of {_SIU_FRAUD_THRESHOLD}. Recommended for Special "
+            f"Investigations Unit review before any final decision."
         )
-        recommended_amount = 0.0
+        if billing_result and policy_result and billing_result.payable_amount is not None:
+            recommended_amount, deduction_factors = _apply_policy_deductions(
+                billing_result.payable_amount, policy_result
+            )
+            factors.extend(deduction_factors)
+        else:
+            recommended_amount = None
     elif policy_result is None or not policy_result.covered:
-        decision = SettlementDecision.REJECT
+        decision = SettlementDecision.NEED_REVIEW
         factors.append("policy not covered")
         reasoning = (
-            "High Risk - Manual Review Required: the policy coverage decision was not "
-            "confirmed as covered. Recommended for manual investigation before any "
-            "settlement decision."
+            "Needs review: the policy coverage decision was not confirmed as covered. "
+            "Recommended for claims officer review before any settlement decision."
         )
-        recommended_amount = 0.0
+        recommended_amount = None
     elif (
         medical_result is not None
         and medical_result.validation_status == "inconsistent"
@@ -112,10 +123,24 @@ def recommend_settlement(
             factors.extend(deduction_factors)
         else:
             recommended_amount = None
+    elif fraud_score >= _MANUAL_INVESTIGATION_FRAUD_THRESHOLD:
+        decision = SettlementDecision.MANUAL_INVESTIGATION
+        factors.append(f"fraud_score >= {_MANUAL_INVESTIGATION_FRAUD_THRESHOLD} (high fraud risk)")
+        reasoning = (
+            f"High Risk - Manual Investigation: fraud score {fraud_score} is elevated. "
+            f"Recommended for manual investigation before a settlement decision."
+        )
+        if billing_result and billing_result.payable_amount is not None:
+            recommended_amount, deduction_factors = _apply_policy_deductions(
+                billing_result.payable_amount, policy_result
+            )
+            factors.extend(deduction_factors)
+        else:
+            recommended_amount = None
     elif fraud_score >= _REVIEW_FRAUD_THRESHOLD:
         decision = SettlementDecision.NEED_REVIEW
         factors.append(f"fraud_score >= {_REVIEW_FRAUD_THRESHOLD} (medium fraud risk)")
-        reasoning = f"Needs review: fraud score {fraud_score} is elevated but below the reject threshold."
+        reasoning = f"Needs review: fraud score {fraud_score} is elevated but below the high-risk threshold."
         if billing_result and billing_result.payable_amount is not None:
             recommended_amount, deduction_factors = _apply_policy_deductions(
                 billing_result.payable_amount, policy_result

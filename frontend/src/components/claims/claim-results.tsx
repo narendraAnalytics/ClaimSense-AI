@@ -5,9 +5,11 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import type { ProcessClaimResponse } from "@/lib/backend-api";
 
 const DECISION_LABELS: Record<string, string> = {
-  approve: "Approved",
-  reject: "High Risk – Manual Review Required",
-  need_review: "Manual Review Required",
+  approve: "Low Risk – Recommended for Approval",
+  need_review: "Medium Risk – Claims Officer Review",
+  manual_investigation: "High Risk – Manual Investigation",
+  siu_review: "Critical Risk – SIU Review",
+  incomplete_documentation: "Incomplete Documentation – Additional Documents Required",
 };
 
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: string }) {
@@ -40,9 +42,13 @@ export function ClaimResults({ claim }: { claim: Doc<"claims"> }) {
   const decisionTone =
     claim.settlementDecision === "approve"
       ? "text-emerald-600"
-      : claim.settlementDecision === "reject"
+      : claim.settlementDecision === "siu_review"
         ? "text-red-600"
-        : "text-amber-600";
+        : claim.settlementDecision === "manual_investigation"
+          ? "text-orange-600"
+          : claim.settlementDecision === "incomplete_documentation"
+            ? "text-slate-600"
+            : "text-amber-600";
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-emerald-500/20 bg-white/70 p-5 backdrop-blur-md">

@@ -68,6 +68,7 @@ class FraudLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+    CRITICAL = "critical"
 
 
 class ReportStatus(str, Enum):
@@ -100,8 +101,10 @@ class HistoryStatus(str, Enum):
 
 class SettlementDecision(str, Enum):
     APPROVE = "approve"
-    REJECT = "reject"
-    NEED_REVIEW = "need_review"
+    NEED_REVIEW = "need_review"  # 30-49 fraud score — Claims Officer Review
+    MANUAL_INVESTIGATION = "manual_investigation"  # 50-69 fraud score — High Risk
+    SIU_REVIEW = "siu_review"  # 70-100 fraud score — Critical Risk
+    INCOMPLETE_DOCUMENTATION = "incomplete_documentation"  # no documents parsed
 
 
 CLAIM_STATUS = ClaimStatus
