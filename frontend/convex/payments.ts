@@ -57,7 +57,7 @@ export const createOrder = action({
       body: JSON.stringify({
         amount,
         currency: "INR",
-        receipt: `plan_${args.plan}_${user._id}_${Date.now()}`,
+        receipt: `${args.plan}_${user._id.slice(-12)}_${Date.now()}`,
       }),
     });
     if (!res.ok) {
