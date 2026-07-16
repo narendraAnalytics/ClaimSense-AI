@@ -34,3 +34,5 @@ jobs:
         env:
           CONVEX_URL: ${{ secrets.CONVEX_URL }}
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_SITE_URL: ${{ secrets.CONVEX_SITE_URL }}
+          BACKEND_UPLOAD_SECRET: ${{ secrets.BACKEND_UPLOAD_SECRET }}
