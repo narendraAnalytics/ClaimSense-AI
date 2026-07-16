@@ -30,3 +30,6 @@ jobs:
       - run: uv sync --frozen --dev
 
       - run: uv run pytest -q
+        env:
+          CONVEX_URL: ${{ secrets.CONVEX_URL }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
