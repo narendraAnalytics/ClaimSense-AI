@@ -3,6 +3,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import { PLAN_LIMITS, resolvePlan } from "./planLimits";
 
 async function getOwnedClaim(
   ctx: QueryCtx | MutationCtx,
@@ -13,6 +14,23 @@ async function getOwnedClaim(
   const claim = await ctx.db.get(claimId);
   if (!claim || claim.userId !== userId) throw new Error("Claim not found");
   return claim;
+}
+
+function startOfCurrentMonthUTC(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+}
+
+async function countClaimsThisMonth(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+): Promise<number> {
+  const monthStart = startOfCurrentMonthUTC();
+  const claims = await ctx.db
+    .query("claims")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return claims.filter((c) => c.createdAt >= monthStart).length;
 }
 
 export const create = mutation({
@@ -26,6 +44,19 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    const plan = resolvePlan(user?.plan);
+    const limit = PLAN_LIMITS[plan].claimsPerMonth;
+    if (limit !== null) {
+      const used = await countClaimsThisMonth(ctx, userId);
+      if (used >= limit) {
+        throw new Error(
+          `Free plan limit reached: ${limit} claim(s) per month. Upgrade to Pro or Plus for more.`,
+        );
+      }
+    }
+
     const now = Date.now();
     const claimNumber = `CLM-${now.toString(36).toUpperCase()}`;
     return await ctx.db.insert("claims", {
@@ -147,5 +178,22 @@ export const saveDecision = mutation({
       reportUrl: args.reportUrl,
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const getUsage = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    const plan = resolvePlan(user?.plan);
+    const claimsUsedThisMonth = await countClaimsThisMonth(ctx, userId);
+    return {
+      plan,
+      claimsUsedThisMonth,
+      claimsLimit: PLAN_LIMITS[plan].claimsPerMonth,
+      docsLimitPerClaim: PLAN_LIMITS[plan].docsPerClaim,
+    };
   },
 });

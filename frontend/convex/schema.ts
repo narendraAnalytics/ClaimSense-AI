@@ -5,6 +5,37 @@ import { v } from "convex/values";
 const schema = defineSchema({
   ...authTables,
 
+  // Overrides authTables.users to add plan fields, keeping every field/index
+  // from @convex-dev/auth's own users table definition (confirmed via
+  // node_modules/@convex-dev/auth/dist/server/implementation/types.js).
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    plan: v.optional(v.union(v.literal("pro"), v.literal("plus"))), // undefined = free
+    planUpdatedAt: v.optional(v.number()),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
+
+  // Razorpay test-mode payment audit trail, also used to make plan upgrades
+  // idempotent (a retried verify call can't double-upgrade or double-record).
+  payments: defineTable({
+    userId: v.id("users"),
+    plan: v.union(v.literal("pro"), v.literal("plus")),
+    amount: v.number(), // paise
+    razorpayOrderId: v.string(),
+    razorpayPaymentId: v.string(),
+    status: v.literal("verified"),
+    createdAt: v.number(),
+  })
+    .index("by_razorpay_payment_id", ["razorpayPaymentId"])
+    .index("by_user", ["userId"]),
+
   claims: defineTable({
     userId: v.id("users"),
     backendClaimId: v.optional(v.string()),

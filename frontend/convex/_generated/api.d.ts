@@ -15,6 +15,8 @@ import type * as claims from "../claims.js";
 import type * as documents from "../documents.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
+import type * as payments from "../payments.js";
+import type * as planLimits from "../planLimits.js";
 import type * as users from "../users.js";
 
 import type {
@@ -31,6 +33,8 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   files: typeof files;
   http: typeof http;
+  payments: typeof payments;
+  planLimits: typeof planLimits;
   users: typeof users;
 }>;
 

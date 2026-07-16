@@ -90,14 +90,14 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
 
         <div className="ml-auto hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link}
-              href="#"
+              href={link === "Pricing" ? (isAuthenticated ? "/pricing" : "/sign-in") : "#"}
               className="group relative py-1.5 text-[15px] font-medium text-[#2c5c50] transition-colors hover:text-[#0a6b55]"
             >
               {link}
               <span className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-transform duration-300 group-hover:scale-x-100" />
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -149,14 +149,14 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
       {menuOpen && (
         <div className="flex flex-col gap-1 px-6 pt-2.5 pb-6 backdrop-blur-2xl animate-cs-fade-up">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link}
-              href="#"
+              href={link === "Pricing" ? (isAuthenticated ? "/pricing" : "/sign-in") : "#"}
               onClick={() => setMenuOpen(false)}
               className="rounded-xl px-2.5 py-3 text-[17px] font-semibold text-[#1c4a3f] hover:bg-emerald-500/10 hover:text-[#0a6b55]"
             >
               {link}
-            </a>
+            </Link>
           ))}
           {isAuthenticated ? (
             <div className="mt-3 flex flex-col items-center gap-3">
