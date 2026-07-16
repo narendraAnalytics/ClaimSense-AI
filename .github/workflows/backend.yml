@@ -1,3 +1,4 @@
+# CONVEX_URL/CONVEX_DEPLOY_KEY repo secrets required (see root CLAUDE.md CI/CD section)
 name: Backend CI
 
 on:
