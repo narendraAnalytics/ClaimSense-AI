@@ -63,3 +63,5 @@ Currently built: the marketing landing page (`src/app/page.tsx`, `src/components
 - **Mirror the generated report PDF into Convex storage — ✅ done** (backend side, later session): the backend now uploads the generated PDF straight to Convex File Storage and `GET /claims/{id}/report` redirects there instead of serving from local disk, so it survives a backend restart. Verified network-free only — not yet click-tested live, so treat `claim-results.tsx`'s "Download Report" link as unverified until someone actually clicks it post-restart.
 - Surface a retry affordance when a document's `backendUploaded` stays `false`
 - Phase 2 backend work (still backend-side, not blocking this frontend): `history_store.py` is the one remaining in-memory piece not yet migrated to Convex (claim/document registries and file storage are done, see above); parallel agent execution tuning, Qdrant-based semantic history refinements, background/async job processing
+
+<!-- branch-protection test: safe to remove -->

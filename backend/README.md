@@ -60,3 +60,5 @@ No dev server is wired up yet. Once Phase 3 lands, this section will document `u
 - [ ] Phase 3 — FastAPI app init, config, logging, health check endpoint, router registration
 - [ ] Phase 4 — Sarvam client + first agents (Intake Supervisor, Policy Coverage, Document Intelligence)
 - [ ] Phase 5 — Remaining agents, LangGraph wiring, Convex integration
+
+<!-- branch-protection test: safe to remove -->
