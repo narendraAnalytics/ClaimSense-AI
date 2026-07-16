@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useMutation } from "convex/react";
+import Link from "next/link";
+import { useMutation, useQuery } from "convex/react";
 import { UploadCloud, X } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -21,11 +22,17 @@ export function DocumentUploader({
 }) {
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const insertDocument = useMutation(api.documents.insert);
+  const existingDocs = useQuery(api.documents.listByClaim, { claimId });
+  const usage = useQuery(api.claims.getUsage);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [backendWarnings, setBackendWarnings] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const docsLimit = usage?.docsLimitPerClaim ?? null;
+  const docsUsed = existingDocs?.length ?? 0;
+  const atDocsLimit = docsLimit !== null && docsUsed + stagedFiles.length >= docsLimit;
 
   function stageFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -38,6 +45,11 @@ export function DocumentUploader({
         }
         if (!ACCEPTED_TYPES.includes(file.type)) {
           throw new Error(`${file.name} is not a supported file type`);
+        }
+        if (docsLimit !== null && docsUsed + stagedFiles.length + next.length >= docsLimit) {
+          throw new Error(
+            `Free plan limit reached: ${docsLimit} document(s) per claim. Upgrade to Pro or Plus for more.`,
+          );
         }
         next.push({
           key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
@@ -114,7 +126,11 @@ export function DocumentUploader({
   return (
     <div className="rounded-2xl border border-emerald-500/20 bg-white/70 p-5 backdrop-blur-md">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5 py-2.5 text-[14.5px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.3)] transition-all hover:bg-right">
+        <label
+          className={`inline-flex items-center gap-2 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5 py-2.5 text-[14.5px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.3)] transition-all hover:bg-right ${
+            uploading || atDocsLimit ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          }`}
+        >
           <UploadCloud className="h-[16px] w-[16px]" />
           Select PDF/Image(s)
           <input
@@ -122,11 +138,24 @@ export function DocumentUploader({
             type="file"
             multiple
             accept={ACCEPTED_TYPES.join(",")}
-            disabled={uploading}
+            disabled={uploading || atDocsLimit}
             className="hidden"
             onChange={(e) => stageFiles(e.target.files)}
           />
         </label>
+        {docsLimit !== null && (
+          <span className="text-[13px] text-[#4c7d6e]">
+            {docsUsed}/{docsLimit} documents
+            {atDocsLimit && (
+              <>
+                {" — "}
+                <Link href="/pricing" className="font-semibold text-[#0e8a6d] underline">
+                  Upgrade
+                </Link>
+              </>
+            )}
+          </span>
+        )}
       </div>
 
       {stagedFiles.length > 0 && (

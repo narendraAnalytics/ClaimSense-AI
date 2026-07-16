@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { ArrowRight } from "lucide-react";
@@ -57,8 +58,13 @@ export function CreateClaimForm() {
               });
               await setBackendClaimId({ claimId, backendClaimId: backendClaim.claim_id });
               router.push(`/claims/${claimId}`);
-            } catch {
-              setError("Could not create claim. Check your details and try again.");
+            } catch (err) {
+              const message = err instanceof Error ? err.message : "";
+              setError(
+                message.includes("Free plan limit reached")
+                  ? message
+                  : "Could not create claim. Check your details and try again.",
+              );
               setSubmitting(false);
             }
           })();
@@ -122,7 +128,19 @@ export function CreateClaimForm() {
           />
         </label>
 
-        {error && <p className="text-[13.5px] text-red-600">{error}</p>}
+        {error && (
+          <p className="text-[13.5px] text-red-600">
+            {error}
+            {error.includes("Free plan limit reached") && (
+              <>
+                {" "}
+                <Link href="/pricing" className="font-semibold underline">
+                  Upgrade
+                </Link>
+              </>
+            )}
+          </p>
+        )}
 
         <button
           type="submit"

@@ -1,20 +1,41 @@
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import { PLAN_LIMITS, resolvePlan } from "./planLimits";
 
-async function assertOwnsClaim(ctx: QueryCtx | MutationCtx, claimId: Id<"claims">) {
+async function assertOwnsClaim(
+  ctx: QueryCtx | MutationCtx,
+  claimId: Id<"claims">,
+): Promise<Doc<"claims">> {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
   const claim = await ctx.db.get(claimId);
   if (!claim || claim.userId !== userId) throw new Error("Claim not found");
+  return claim;
 }
 
 export const generateUploadUrl = mutation({
   args: { claimId: v.id("claims") },
   handler: async (ctx, args) => {
-    await assertOwnsClaim(ctx, args.claimId);
+    const claim = await assertOwnsClaim(ctx, args.claimId);
+
+    const user = await ctx.db.get(claim.userId);
+    const plan = resolvePlan(user?.plan);
+    const limit = PLAN_LIMITS[plan].docsPerClaim;
+    if (limit !== null) {
+      const existing = await ctx.db
+        .query("documents")
+        .withIndex("by_claim", (q) => q.eq("claimId", args.claimId))
+        .collect();
+      if (existing.length >= limit) {
+        throw new Error(
+          `Free plan limit reached: ${limit} document(s) per claim. Upgrade to Pro or Plus for more.`,
+        );
+      }
+    }
+
     return await ctx.storage.generateUploadUrl();
   },
 });

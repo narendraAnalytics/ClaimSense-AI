@@ -15,6 +15,9 @@ const STATUS_STYLES: Record<string, string> = {
 
 export function ClaimsDashboard() {
   const claims = useQuery(api.claims.listMine);
+  const usage = useQuery(api.claims.getUsage);
+  const quotaExhausted =
+    usage != null && usage.claimsLimit !== null && usage.claimsUsedThisMonth >= usage.claimsLimit;
 
   return (
     <div className="mx-auto w-full max-w-[900px] px-6 py-10">
@@ -26,14 +29,39 @@ export function ClaimsDashboard() {
           <p className="mt-1 text-[15px] text-[#4c7d6e]">
             Submit and track your insurance claims.
           </p>
+          {usage && (
+            <p className="mt-2 flex items-center gap-2 text-[13px] text-[#4c7d6e]">
+              <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 font-semibold uppercase tracking-wide text-[#0e8a6d]">
+                {usage.plan}
+              </span>
+              {usage.claimsLimit !== null
+                ? `${usage.claimsUsedThisMonth}/${usage.claimsLimit} claims used this month`
+                : "Unlimited claims"}
+              {usage.plan !== "plus" && (
+                <Link href="/pricing" className="font-semibold text-[#0e8a6d] underline">
+                  Upgrade
+                </Link>
+              )}
+            </p>
+          )}
         </div>
-        <Link
-          href="/claims/new"
-          className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35)] transition-all hover:bg-right"
-        >
-          <Plus className="h-[18px] w-[18px]" />
-          New Claim
-        </Link>
+        {quotaExhausted ? (
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-white/70 px-5 py-2.5 text-[15px] font-semibold text-[#0e8a6d] transition-all hover:bg-emerald-500/10"
+          >
+            <Plus className="h-[18px] w-[18px]" />
+            Upgrade to Add More
+          </Link>
+        ) : (
+          <Link
+            href="/claims/new"
+            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35)] transition-all hover:bg-right"
+          >
+            <Plus className="h-[18px] w-[18px]" />
+            New Claim
+          </Link>
+        )}
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
