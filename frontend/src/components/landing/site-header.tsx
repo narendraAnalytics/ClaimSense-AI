@@ -8,6 +8,8 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { navLinks } from "@/lib/landing-data";
 import { api } from "../../../convex/_generated/api";
+import { resolvePlan } from "../../../convex/planLimits";
+import { PlanTag } from "./plan-tag";
 
 type SiteHeaderProps = {
   minimal?: boolean;
@@ -108,6 +110,7 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
                 Welcome, {user.name}
               </span>
             )}
+            <PlanTag plan={resolvePlan(user?.plan)} />
             <button
               type="button"
               onClick={() => void signOut()}
@@ -187,6 +190,7 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
                   Welcome, {user.name}
                 </span>
               )}
+              <PlanTag plan={resolvePlan(user?.plan)} />
               <span className="text-center text-[12.5px] text-[#4c7d6e]">Tap avatar to sign out</span>
             </div>
           ) : (
