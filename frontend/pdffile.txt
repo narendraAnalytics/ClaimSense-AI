@@ -1,0 +1,567 @@
+I reviewed your plan, and **overall I think it's the right direction**. It matches the architecture you're actually running today rather than introducing unnecessary complexity. 
+
+I'd rate it:
+
+| Area                 | Rating | Comments                       |
+| -------------------- | :----: | ------------------------------ |
+| Architecture         |  ⭐⭐⭐⭐⭐ | Excellent                      |
+| Incremental roadmap  |  ⭐⭐⭐⭐⭐ | Excellent                      |
+| CI design            |  ⭐⭐⭐⭐⭐ | Excellent                      |
+| Deployment strategy  |  ⭐⭐⭐⭐⭐ | Excellent                      |
+| Production readiness |  ⭐⭐⭐⭐☆ | A few improvements recommended |
+
+---
+
+# ✅ What I like
+
+## 1. Keeping Railway Docker build
+
+This is exactly what I would recommend.
+
+Current flow
+
+```text
+GitHub
+    │
+    ▼
+Railway
+    │
+Build Dockerfile
+    │
+Deploy
+```
+
+No unnecessary GHCR.
+
+Much simpler.
+
+---
+
+## 2. CI before CD
+
+This is probably the biggest improvement.
+
+Instead of
+
+```text
+Push
+
+↓
+
+Deploy
+```
+
+you'll have
+
+```text
+Push
+
+↓
+
+Lint
+
+↓
+
+Typecheck
+
+↓
+
+Tests
+
+↓
+
+Deploy
+```
+
+That's how mature teams work.
+
+---
+
+## 3. Docker-free locally
+
+Your roadmap correctly states
+
+> Developer doesn't need Docker installed.
+
+Because
+
+* Railway builds Docker
+* GitHub Actions can build Docker later
+
+So your laptop never needs Docker.
+
+Correct. 
+
+---
+
+## 4. GHCR later
+
+Excellent decision.
+
+People often jump directly to
+
+```
+GitHub
+
+↓
+
+Docker Build
+
+↓
+
+GHCR
+
+↓
+
+Railway
+```
+
+without asking
+
+> Why?
+
+Your roadmap answers that properly.
+
+---
+
+## 5. Branch protection
+
+Very important.
+
+Many beginners forget this.
+
+Your plan includes
+
+```
+CI
+
+↓
+
+Required
+
+↓
+
+Merge
+```
+
+Perfect.
+
+---
+
+# Things I would improve
+
+These are not major problems—they're enhancements I'd make before calling it "production-ready."
+
+---
+
+# 1. Split CI into multiple workflows ⭐⭐⭐⭐⭐
+
+Instead of
+
+```
+ci.yml
+```
+
+I recommend
+
+```
+.github/workflows/
+
+frontend.yml
+
+backend.yml
+
+security.yml
+
+release.yml
+```
+
+Why?
+
+Suppose you only change frontend.
+
+Current
+
+```
+Frontend
+
+↓
+
+Backend
+
+↓
+
+Tests
+```
+
+Backend still runs.
+
+Better
+
+```
+Frontend change
+
+↓
+
+Only frontend workflow
+```
+
+Much faster.
+
+---
+
+# 2. Add Dependency Scanning
+
+Right now you have
+
+```
+Lint
+
+↓
+
+Tests
+```
+
+I'd insert
+
+```
+npm audit
+
+uv audit
+```
+
+or use GitHub's built-in Dependabot and CodeQL security scanning. GitHub provides native security features that integrate well with GitHub Actions. ([GitHub][1])
+
+---
+
+# 3. Cache dependencies
+
+Instead of downloading everything every run
+
+```
+npm install
+```
+
+cache
+
+```
+node_modules
+
+uv cache
+```
+
+GitHub Actions supports dependency caching, and `astral-sh/setup-uv` can cache packages to significantly speed up Python jobs. ([GitHub][1])
+
+---
+
+# 4. Separate Unit and Integration Tests
+
+Instead of
+
+```
+pytest
+```
+
+I would have
+
+```
+Unit Tests
+
+↓
+
+Integration Tests
+
+↓
+
+Deploy
+```
+
+Your plan already recognizes this by excluding API-credit-consuming integration tests from the default CI run. That's exactly the right approach. 
+
+---
+
+# 5. Add Build Matrix (Later)
+
+Eventually
+
+```
+Python 3.12
+
+Node 22
+```
+
+can become
+
+```
+Python
+
+3.11
+
+3.12
+
+Node
+
+20
+
+22
+```
+
+Not needed today.
+
+Very useful later.
+
+---
+
+# 6. Add Preview Deploy Validation
+
+Before production
+
+```
+PR
+
+↓
+
+Preview Deploy
+
+↓
+
+Smoke Test
+
+↓
+
+Merge
+```
+
+Vercel already creates preview deployments for pull requests, so adding automated smoke tests against those previews is a natural future enhancement. ([Next.js][2])
+
+---
+
+# 7. Health Checks
+
+After deployment
+
+```
+Deploy
+
+↓
+
+Health Check
+
+↓
+
+Success
+```
+
+instead of
+
+```
+Deploy
+
+↓
+
+Done
+```
+
+A simple `/health` endpoint check is enough initially.
+
+---
+
+# 8. Notifications
+
+I would add
+
+```
+CI Failed
+
+↓
+
+Slack
+
+or
+
+Email
+```
+
+Not essential now.
+
+Very useful later.
+
+---
+
+# 9. Version Tagging
+
+Eventually
+
+```
+main
+
+↓
+
+v1.2.0
+
+↓
+
+Release
+```
+
+instead of only deploying from commits.
+
+---
+
+# 10. Code Coverage
+
+Add
+
+```
+pytest
+
+↓
+
+Coverage
+
+↓
+
+Badge
+```
+
+Eventually require
+
+```
+Coverage > 80%
+```
+
+---
+
+# One thing I'd change immediately
+
+Your roadmap mentions **`next build`** for frontend validation.
+
+That's correct.
+
+But because you're using **Next.js 16**, remember that:
+
+* ❌ `next lint` has been removed.
+* ✅ Use the **ESLint CLI** (`eslint`) with an `eslint.config.mjs` flat configuration.
+* ✅ Keep linting and build as separate CI steps. ([Next.js][2])
+
+So your frontend job should look like:
+
+```text
+Install
+
+↓
+
+ESLint
+
+↓
+
+Type Check
+
+↓
+
+Build
+
+↓
+
+Success
+```
+
+instead of relying on build to perform linting.
+
+---
+
+# My recommended roadmap
+
+## Stage 1 ✅
+
+```
+Frontend CI
+
+Backend CI
+
+Branch Protection
+```
+
+---
+
+## Stage 2 ✅
+
+```
+Dependency Scan
+
+CodeQL
+
+Coverage
+```
+
+---
+
+## Stage 3 ✅
+
+```
+Preview Deploy
+
+Smoke Test
+
+Health Check
+```
+
+---
+
+## Stage 4 ✅
+
+```
+Docker Build
+
+GHCR
+
+Railway Pull Image
+```
+
+---
+
+## Stage 5 ✅
+
+```
+Version Tags
+
+Release Notes
+
+Notifications
+```
+
+---
+
+# Final verdict
+
+I would score the plan **9.8/10**.
+
+The only thing I would change is **not** the architecture—it's already solid. I'd just make it a bit more modular and future-proof by:
+
+* splitting CI into multiple workflows,
+* adding dependency/security scanning,
+* adding dependency caching,
+* keeping lint and build separate for Next.js 16,
+* and leaving GHCR as a later optimization.
+
+That gives you a clean progression from a simple but production-quality CI pipeline to a more advanced release pipeline as your projects grow.
+
+---
+
+# Stage 1 — Implemented ✅ (what actually got built)
+
+Files created/changed:
+
+* `.github/workflows/frontend.yml` — checkout → `actions/setup-node@v4` (Node 22, `cache: npm`) → `npm ci` → `npm run lint` → `npm run build`. Scoped to `paths: frontend/**` so a backend-only change doesn't trigger it.
+* `.github/workflows/backend.yml` — checkout → `astral-sh/setup-uv@v5` (`enable-cache: true`) → `uv sync --frozen --dev` → `uv run pytest -q`. Scoped to `paths: backend/**`.
+* `frontend/eslint.config.mjs` — flat config for ESLint 9 (Next 16 has no `next lint`, confirmed above). `eslint-config-next`'s `FlatCompat`-wrapped `next/core-web-vitals` hit a known bug (`TypeError: Converting circular structure to JSON` — `eslint-plugin-react-hooks`'s self-referencing config breaks `FlatCompat`'s validator). Fixed by importing `@next/eslint-plugin-next`'s flat `configs["core-web-vitals"]` directly instead of going through `FlatCompat`/`eslint-config-next`. Also excludes `samplecode/**` (an already-`.gitignore`d design-tool export, not app source) and `convex/_generated/**`.
+* `frontend/package.json` — added `"lint": "eslint ."` script, `eslint` + `eslint-config-next@16.2.10` as devDependencies (pinned to match the installed Next version).
+* **No backend test changes needed.** All four Sarvam-hitting tests (`test_phase9_workflow.py`, `test_medical_agent.py`, `test_policy_agent.py`, `test_document_intelligence.py`) already carry `@pytest.mark.skipif(not settings.sarvam_api_key, ...)`, and `sarvam_api_key` defaults to `""`. Since CI deliberately never sets a `SARVAM_API_KEY` secret, those tests auto-skip — no `integration` marker or `pyproject.toml` change was necessary, simpler than originally planned.
+
+Verified locally before pushing:
+* `npm run lint` → clean (0 errors after the `samplecode/` exclusion).
+* `npm run build` → succeeds both with and without `.env.local` present (Convex client init happens client-side at runtime, not at build/prerender time, so missing `NEXT_PUBLIC_CONVEX_URL` in a CI environment with no secrets doesn't break the build).
+* `uv run pytest -q` → **caveat**: this machine's `backend/.env` has a real `SARVAM_API_KEY`, so running it locally did NOT skip the 4 Sarvam-dependent tests — it made real Sarvam API calls (spent real credits) and 4 of them failed on a pre-existing, unrelated assertion (`test_policy_agent.py` and friends assert an agent-execution-order list that predates the `human_approval`/`report` stages added later — see `backend/CLAUDE.md`; not something this CI change introduced or something to fix here). 19 other tests passed. In actual GitHub Actions, `backend/.env` won't exist (it's gitignored, never checked out) and no `SARVAM_API_KEY` secret is configured, so `sarvam_api_key` defaults to `""` and the `skipif` guards will correctly skip all 4 — CI will only run the 19 passing network-free tests, exactly as intended.
+
+**Still manual (not something Claude can do via code):** enable branch protection on `main` in GitHub repo Settings → Branches → require the `Frontend CI` and `Backend CI` status checks before merge.
+

@@ -24,6 +24,9 @@ A claim's final response (after the officer's decision) includes a coverage deci
 
 The backend is deployed on Railway at `https://claimsense-ai-production.up.railway.app` (`APP_ENV=production`); all endpoints live under `/api/v1` (e.g. `/api/v1/health`), not at bare paths. UploadThing (file storage) and Convex (auth + persistence + checkpointing) are both deliberately deferred until *after* the Next.js frontend exists — see `backend/CLAUDE.md` for the current wiring status of each.
 
+## CI/CD
+GitHub Actions now gates `main`: `.github/workflows/frontend.yml` (lint + `next build`) and `.github/workflows/backend.yml` (`uv sync` + `pytest`), each path-scoped so a change to one stack doesn't trigger the other's job. This is Stage 1 of the roadmap in `frontend/pdffile.txt`; Stage 2 (GHCR build-and-push) is documented there but deliberately not built — Railway already builds the backend's Docker image server-side from the root `Dockerfile`/`railway.toml`, so Docker has never been required on a local machine for either build or deploy. Branch protection requiring these two checks before merge is still a manual, not-yet-done GitHub repo-settings step.
+
 ## Scoping note
 This project targets **production-grade engineering practices on demo-scale/synthetic data**, not a certified, regulator-approved production insurance system. Real deployment would additionally require regulatory compliance (IRDAI/HIPAA-equivalent), audited decisioning, legal review of auto-approval logic, and real claims data — none of which are in scope here. Keep this framing in mind when writing docs, code comments, or demo materials: be accurate about what's a working demo vs. what production would additionally require.
 
