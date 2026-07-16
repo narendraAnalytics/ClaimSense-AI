@@ -37,7 +37,6 @@ export function UpgradeButton({ plan }: { plan: "pro" | "plus" }) {
           void (async () => {
             try {
               await verifyAndUpgrade({
-                plan,
                 razorpayOrderId: response.razorpay_order_id,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,

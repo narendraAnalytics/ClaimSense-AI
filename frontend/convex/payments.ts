@@ -18,9 +18,22 @@ async function hmacSha256Hex(message: string, secret: string): Promise<string> {
     .join("");
 }
 
+// Constant-time comparison so signature verification doesn't leak timing
+// information about how many leading characters matched.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 // Creates a Razorpay test-mode order via a plain REST call (no `razorpay` npm
 // package needed, runs in Convex's default runtime). The secret key never
-// leaves this action.
+// leaves this action. The plan/amount this order was created for is recorded
+// server-side (pendingOrders) so verifyAndUpgrade never has to trust a
+// client-supplied plan — otherwise a user could pay for Pro and claim Plus.
 export const createOrder = action({
   args: { plan: v.union(v.literal("pro"), v.literal("plus")) },
   handler: async (
@@ -51,15 +64,36 @@ export const createOrder = action({
       throw new Error(`Razorpay order creation failed: ${await res.text()}`);
     }
     const order = (await res.json()) as { id: string; amount: number; currency: string };
+
+    await ctx.runMutation(internal.payments.recordPendingOrder, {
+      userId: user._id,
+      plan: args.plan,
+      amount: order.amount,
+      razorpayOrderId: order.id,
+    });
+
     return { orderId: order.id, amount: order.amount, currency: order.currency, keyId };
   },
 });
 
+export const recordPendingOrder = internalMutation({
+  args: {
+    userId: v.id("users"),
+    plan: v.union(v.literal("pro"), v.literal("plus")),
+    amount: v.number(),
+    razorpayOrderId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("pendingOrders", { ...args, createdAt: Date.now() });
+  },
+});
+
 // No webhook: verification and the plan upgrade happen synchronously right
-// after the Razorpay Checkout success callback fires in the browser.
+// after the Razorpay Checkout success callback fires in the browser. The
+// plan/amount applied come from the server-recorded pendingOrders row for
+// this orderId, never from a client-supplied argument.
 export const verifyAndUpgrade = action({
   args: {
-    plan: v.union(v.literal("pro"), v.literal("plus")),
     razorpayOrderId: v.string(),
     razorpayPaymentId: v.string(),
     razorpaySignature: v.string(),
@@ -75,50 +109,60 @@ export const verifyAndUpgrade = action({
       `${args.razorpayOrderId}|${args.razorpayPaymentId}`,
       keySecret,
     );
-    if (expectedSignature !== args.razorpaySignature) {
+    if (!timingSafeEqual(expectedSignature, args.razorpaySignature)) {
       throw new Error("Payment verification failed");
     }
 
-    await ctx.runMutation(internal.payments.applyUpgrade, {
+    const plan = await ctx.runMutation(internal.payments.applyUpgrade, {
       userId: user._id,
-      plan: args.plan,
-      amount: PLAN_LIMITS[args.plan].priceInPaise,
       razorpayOrderId: args.razorpayOrderId,
       razorpayPaymentId: args.razorpayPaymentId,
     });
 
-    return { success: true, plan: args.plan };
+    return { success: true, plan };
   },
 });
 
 // Idempotent on razorpayPaymentId so a retried verify call can't
-// double-upgrade or double-record.
+// double-upgrade or double-record. Looks up the plan/amount from the
+// server-recorded pendingOrders row (written by createOrder) rather than
+// trusting the caller, and confirms the order belongs to this user.
 export const applyUpgrade = internalMutation({
   args: {
     userId: v.id("users"),
-    plan: v.union(v.literal("pro"), v.literal("plus")),
-    amount: v.number(),
     razorpayOrderId: v.string(),
     razorpayPaymentId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<PlanId> => {
+    const pendingOrder = await ctx.db
+      .query("pendingOrders")
+      .withIndex("by_razorpay_order_id", (q) => q.eq("razorpayOrderId", args.razorpayOrderId))
+      .unique();
+    if (!pendingOrder) throw new Error("No matching order found");
+    if (pendingOrder.userId !== args.userId) {
+      throw new Error("Order does not belong to this user");
+    }
+
     const existing = await ctx.db
       .query("payments")
       .withIndex("by_razorpay_payment_id", (q) =>
         q.eq("razorpayPaymentId", args.razorpayPaymentId),
       )
       .unique();
-    if (existing) return;
+    if (existing) return existing.plan;
 
     await ctx.db.insert("payments", {
-      userId: args.userId,
-      plan: args.plan,
-      amount: args.amount,
+      userId: pendingOrder.userId,
+      plan: pendingOrder.plan,
+      amount: pendingOrder.amount,
       razorpayOrderId: args.razorpayOrderId,
       razorpayPaymentId: args.razorpayPaymentId,
       status: "verified",
       createdAt: Date.now(),
     });
-    await ctx.db.patch(args.userId, { plan: args.plan, planUpdatedAt: Date.now() });
+    await ctx.db.patch(pendingOrder.userId, { plan: pendingOrder.plan, planUpdatedAt: Date.now() });
+    await ctx.db.delete(pendingOrder._id);
+
+    return pendingOrder.plan;
   },
 });

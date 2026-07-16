@@ -36,6 +36,18 @@ const schema = defineSchema({
     .index("by_razorpay_payment_id", ["razorpayPaymentId"])
     .index("by_user", ["userId"]),
 
+  // Records what plan/amount each Razorpay order was created for, so
+  // verifyAndUpgrade can trust the server's own record instead of a
+  // client-supplied `plan` argument (which the browser could tamper with to
+  // request a higher plan than what was actually paid for).
+  pendingOrders: defineTable({
+    userId: v.id("users"),
+    plan: v.union(v.literal("pro"), v.literal("plus")),
+    amount: v.number(), // paise
+    razorpayOrderId: v.string(),
+    createdAt: v.number(),
+  }).index("by_razorpay_order_id", ["razorpayOrderId"]),
+
   claims: defineTable({
     userId: v.id("users"),
     backendClaimId: v.optional(v.string()),
