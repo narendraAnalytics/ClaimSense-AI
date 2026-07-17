@@ -171,14 +171,14 @@ export default function AiAgentsPage() {
               key={agent.step}
               className="flex flex-col overflow-hidden rounded-[28px] border border-white/75 bg-gradient-to-b from-white/85 to-white/60 shadow-[0_30px_80px_rgba(12,60,48,.16),inset_0_1px_0_rgba(255,255,255,.9)] backdrop-blur-2xl animate-cs-fade-up md:flex-row md:min-h-[500px]"
             >
-              {/* Image — generous space, ~48% on desktop */}
-              <div className="relative w-full shrink-0 bg-emerald-950/5 md:w-[48%]">
+              {/* Image — generous space, ~65% on desktop */}
+              <div className="relative w-full shrink-0 bg-emerald-950/5 md:w-[65%]">
                 <div className="relative h-[280px] w-full md:h-full md:min-h-[500px]">
                   <Image
                     src={agent.image}
                     alt={agent.name}
                     fill
-                    sizes="(min-width: 768px) 48vw, 100vw"
+                    sizes="(min-width: 768px) 65vw, 100vw"
                     className="object-cover"
                     priority={active === 0}
                   />
@@ -186,8 +186,8 @@ export default function AiAgentsPage() {
                 </div>
               </div>
 
-              {/* Description — generous space, ~52% on desktop */}
-              <div className="flex flex-1 flex-col justify-center gap-4 p-8 md:p-11">
+              {/* Description — ~35% on desktop */}
+              <div className="flex flex-1 flex-col justify-center gap-4 p-8 md:p-9">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-[12px] font-bold text-[#0e8a6d]">
                     Step {String(agent.step).padStart(2, "0")}
