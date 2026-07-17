@@ -16,14 +16,7 @@ import {
   Gauge,
 } from "lucide-react";
 
-export const navLinks = [
-  "Platform",
-  "AI Agents",
-  "Solutions",
-  "Pricing",
-  "Docs",
-  "Contact",
-];
+export const navLinks = ["AI Agents", "Solutions", "Pricing", "Contact"];
 
 export type AgentCard = {
   name: string;

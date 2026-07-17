@@ -90,11 +90,17 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
       <div className="mx-auto flex max-w-[1280px] items-center gap-7 px-7 py-3.5">
         {logo}
 
-        <div className="ml-auto hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link}
-              href={link === "Pricing" ? (isAuthenticated ? "/pricing" : "/sign-in") : "#"}
+              href={
+                link === "Pricing"
+                  ? (isAuthenticated ? "/pricing" : "/sign-in")
+                  : link === "AI Agents"
+                    ? (isAuthenticated ? "/ai-agents" : "/sign-in")
+                    : (isAuthenticated ? "#" : "/sign-in")
+              }
               className="group relative py-1.5 text-[15px] font-medium text-[#2c5c50] transition-colors hover:text-[#0a6b55]"
             >
               {link}
@@ -104,7 +110,7 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
         </div>
 
         {isAuthenticated ? (
-          <div className="ml-2 hidden shrink-0 items-center gap-3 md:flex">
+          <div className="ml-auto hidden shrink-0 items-center gap-3 md:flex">
             {user?.name && (
               <span className="text-[14.5px] font-medium text-[#1c4a3f]">
                 Welcome, {user.name}
@@ -134,7 +140,7 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
         ) : (
           <Link
             href="/sign-in"
-            className="ml-2 hidden shrink-0 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5.5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35),inset_0_1px_0_rgba(255,255,255,.35)] transition-all hover:bg-right hover:shadow-[0_12px_32px_rgba(14,167,122,.5)] md:inline-block"
+            className="ml-auto hidden shrink-0 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5.5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35),inset_0_1px_0_rgba(255,255,255,.35)] transition-all hover:bg-right hover:shadow-[0_12px_32px_rgba(14,167,122,.5)] md:inline-block"
           >
             Request Demo
           </Link>
@@ -154,7 +160,13 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
           {navLinks.map((link) => (
             <Link
               key={link}
-              href={link === "Pricing" ? (isAuthenticated ? "/pricing" : "/sign-in") : "#"}
+              href={
+                link === "Pricing"
+                  ? (isAuthenticated ? "/pricing" : "/sign-in")
+                  : link === "AI Agents"
+                    ? (isAuthenticated ? "/ai-agents" : "/sign-in")
+                    : (isAuthenticated ? "#" : "/sign-in")
+              }
               onClick={() => setMenuOpen(false)}
               className="rounded-xl px-2.5 py-3 text-[17px] font-semibold text-[#1c4a3f] hover:bg-emerald-500/10 hover:text-[#0a6b55]"
             >
