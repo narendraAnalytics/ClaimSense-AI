@@ -101,7 +101,9 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
                     ? (isAuthenticated ? "/ai-agents" : "/sign-in")
                     : link === "Solutions"
                       ? (isAuthenticated ? "/solutions" : "/sign-in")
-                      : (isAuthenticated ? "#" : "/sign-in")
+                      : link === "Contact"
+                        ? (isAuthenticated ? "/contact" : "/sign-in")
+                        : (isAuthenticated ? "#" : "/sign-in")
               }
               className="group relative py-1.5 text-[15px] font-medium text-[#2c5c50] transition-colors hover:text-[#0a6b55]"
             >
@@ -169,7 +171,9 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
                     ? (isAuthenticated ? "/ai-agents" : "/sign-in")
                     : link === "Solutions"
                       ? (isAuthenticated ? "/solutions" : "/sign-in")
-                      : (isAuthenticated ? "#" : "/sign-in")
+                      : link === "Contact"
+                        ? (isAuthenticated ? "/contact" : "/sign-in")
+                        : (isAuthenticated ? "#" : "/sign-in")
               }
               onClick={() => setMenuOpen(false)}
               className="rounded-xl px-2.5 py-3 text-[17px] font-semibold text-[#1c4a3f] hover:bg-emerald-500/10 hover:text-[#0a6b55]"
