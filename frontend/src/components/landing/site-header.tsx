@@ -55,6 +55,31 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
     </Link>
   );
 
+  const portfolioIcon = (
+    <a
+      href="https://buildflows.shop/"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Portfolio"
+      className="group relative hidden h-10 w-10 shrink-0 items-center justify-center md:flex"
+    >
+      <span className="absolute inset-[-3px] rounded-full bg-[conic-gradient(from_0deg,#f97316,#eab308,#22c55e,#06b6d4,#8b5cf6,#ec4899,#f97316)] opacity-90 blur-[2px] animate-cs-ring-spin" />
+      <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full shadow-[0_4px_14px_rgba(16,185,129,.25)]">
+        <Image
+          src="https://res.cloudinary.com/dkqbzwicr/image/upload/v1780985346/porfolioicon_vqyt3j.png"
+          alt="Portfolio"
+          fill
+          sizes="36px"
+          className="scale-125 object-cover"
+        />
+      </span>
+      <span className="pointer-events-none absolute top-[calc(100%+0.75rem)] left-1/2 z-10 -translate-x-1/2 scale-95 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_50%,#8b5cf6)] px-3.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap text-white opacity-0 shadow-[0_8px_20px_rgba(14,167,122,.35)] transition-all duration-200 group-hover:scale-100 group-hover:opacity-100">
+        ✨ Explore My Work
+        <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#0ea77a]" />
+      </span>
+    </a>
+  );
+
   if (minimal) {
     return (
       <nav
@@ -90,7 +115,7 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
       <div className="mx-auto flex max-w-[1280px] items-center gap-7 px-7 py-3.5">
         {logo}
 
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-8 md:ml-20 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link}
@@ -114,7 +139,8 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
         </div>
 
         {isAuthenticated ? (
-          <div className="ml-auto hidden shrink-0 items-center gap-3 md:flex">
+          <div className="ml-auto hidden shrink-0 items-center gap-4 md:flex">
+            {portfolioIcon}
             {user?.name && (
               <span className="text-[14.5px] font-medium text-[#1c4a3f]">
                 Welcome, {user.name}
@@ -142,12 +168,15 @@ export function SiteHeader({ minimal = false }: SiteHeaderProps) {
             </button>
           </div>
         ) : (
-          <Link
-            href="/sign-in"
-            className="ml-auto hidden shrink-0 rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5.5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35),inset_0_1px_0_rgba(255,255,255,.35)] transition-all hover:bg-right hover:shadow-[0_12px_32px_rgba(14,167,122,.5)] md:inline-block"
-          >
-            Request Demo
-          </Link>
+          <div className="ml-auto hidden shrink-0 items-center gap-4 md:flex">
+            {portfolioIcon}
+            <Link
+              href="/sign-in"
+              className="rounded-full bg-[linear-gradient(110deg,#0ea77a,#0ab6c4_55%,#0ea77a)] bg-[length:220%_auto] px-5.5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(14,167,122,.35),inset_0_1px_0_rgba(255,255,255,.35)] transition-all hover:bg-right hover:shadow-[0_12px_32px_rgba(14,167,122,.5)]"
+            >
+              Request Demo
+            </Link>
+          </div>
         )}
 
         <button

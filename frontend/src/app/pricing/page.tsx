@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "convex/react";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { PLAN_LIMITS, type PlanId } from "../../../convex/planLimits";
 import { UpgradeButton } from "@/components/pricing/upgrade-button";
@@ -12,6 +12,10 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
   free: ["1 claim per month", "Up to 4 documents per claim", "Full AI pipeline results"],
   pro: ["10 claims per month", "Up to 15 documents per claim", "Full AI pipeline results", "Priority support"],
   plus: ["Unlimited claims", "Unlimited documents per claim", "Full AI pipeline results", "Priority support"],
+};
+
+const PLAN_EXCLUDED: Partial<Record<PlanId, string[]>> = {
+  free: ["No priority support", "No 24/7 support"],
 };
 
 function formatPrice(paise: number): string {
@@ -32,7 +36,7 @@ export default function PricingPage() {
             Pricing
           </h1>
           <p className="mt-2 text-[15.5px] text-[#4c7d6e]">
-            Test-mode Razorpay checkout — no real charges. Upgrade to raise your claim and
+            Secure checkout powered by Razorpay. Upgrade to raise your claim and
             document limits.
           </p>
         </div>
@@ -56,7 +60,7 @@ export default function PricingPage() {
                 <p className="mt-2 text-[28px] font-bold text-[#0c2b24]">
                   {formatPrice(plan.priceInPaise)}
                   {plan.priceInPaise > 0 && (
-                    <span className="text-[14px] font-medium text-[#4c7d6e]"> one-time (test)</span>
+                    <span className="text-[14px] font-medium text-[#4c7d6e]"> </span>
                   )}
                 </p>
                 <ul className="mt-5 flex flex-col gap-2.5">
@@ -67,6 +71,16 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
+                {PLAN_EXCLUDED[planId] && (
+                  <ul className="mt-2.5 flex flex-col gap-2.5">
+                    {PLAN_EXCLUDED[planId]!.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-[13.5px] text-[#7c9086]">
+                        <X className="mt-0.5 h-[15px] w-[15px] shrink-0 text-rose-400" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-6">
                   {planId === "free" ? (
                     <div className="rounded-full border border-emerald-500/25 px-6 py-3 text-center text-[15px] font-semibold text-[#4c7d6e]">

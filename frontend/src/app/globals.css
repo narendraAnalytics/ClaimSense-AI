@@ -38,6 +38,7 @@
   --animate-cs-fade-up: csFadeUp 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-cs-bar-grow: csBarGrow 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-cs-blink: csBlink 2s ease-in-out infinite;
+  --animate-cs-ring-spin: csRingSpin 3.2s linear infinite;
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -263,6 +264,15 @@
   100% {
     transform: scale(1.9);
     opacity: 0;
+  }
+}
+
+@keyframes csRingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
