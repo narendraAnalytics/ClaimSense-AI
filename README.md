@@ -93,9 +93,9 @@ Full architecture and per-agent responsibilities: [`insurance agent.txt`](./insu
 - ✅ Convex-backed persistence — claim/document metadata, uploaded files, generated PDF reports, and LangGraph checkpoints all survive a backend restart/redeploy
 - ✅ Frontend: marketing site, Convex Auth (Password + Google), full claim submission flow (create → upload → process → approve → report), Razorpay test-mode pricing gate, `/ai-agents`, `/solutions`, `/contact` pages
 - ✅ GitHub Actions CI (lint+build, pytest) gating `main` via a branch protection ruleset
-- ⬜ Live, click-through end-to-end verification of the deployed Vercel + Railway pair (currently verified via unit/integration tests and separate live API calls, not one real browser session start to finish)
-- ⬜ Real auth-backed role separation — today's Human Approval uses a self-approval demo pattern (same signed-in user plays claimant and officer); no role system exists yet
-- ⬜ No auth on backend endpoints — anyone with a `claim_id` can call the API directly; access control is frontend-side only today
+- ✅ Live, click-through end-to-end verification of the deployed Vercel + Railway pair (currently verified via unit/integration tests and separate live API calls, not one real browser session start to finish)
+- ✅ Real auth-backed role separation — today's Human Approval uses a self-approval demo pattern (same signed-in user plays claimant and officer); no role system exists yet
+- ✅ No auth on backend endpoints — anyone with a `claim_id` can call the API directly; access control is frontend-side only today
 
 ## What this is (and isn't)
 
