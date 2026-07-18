@@ -14,6 +14,8 @@ import {
   Search,
   Lock,
   Gauge,
+  CreditCard,
+  Database,
 } from "lucide-react";
 
 export const navLinks = ["AI Agents", "Solutions", "Pricing", "Contact"];
@@ -106,4 +108,6 @@ export const trustBadges: TrustBadge[] = [
   { icon: Search, label: "Qdrant Semantic Search" },
   { icon: Lock, label: "Enterprise Security" },
   { icon: Gauge, label: "95% Faster Claims Processing" },
+  { icon: CreditCard, label: "Razorpay Secure Payments" },
+  { icon: Database, label: "Convex Cloud Storage" },
 ];
