@@ -40,8 +40,8 @@ export function HeroSection() {
             {isAuthenticated ? "Dashboard" : "Start Free Trial"}
             <ArrowRight className="h-[18px] w-[18px]" />
           </Link>
-          <a
-            href="#"
+          <Link
+            href="/watch-demo"
             className="inline-flex items-center gap-2.5 rounded-full border-[1.5px] border-[#0e8a6d]/40 bg-white/50 px-7 py-3.75 text-[16.5px] font-semibold text-[#0e8a6d] backdrop-blur-sm transition-all hover:border-[#0e8a6d] hover:bg-emerald-500/10 hover:text-[#0a6b55] hover:shadow-[0_8px_26px_rgba(16,185,129,.22)]"
           >
             <span className="relative inline-flex h-5 w-5 items-center justify-center">
@@ -49,7 +49,7 @@ export function HeroSection() {
               <Play className="relative h-[15px] w-[15px]" />
             </span>
             Watch Live Demo
-          </a>
+          </Link>
         </div>
 
         <div className="mt-2 flex flex-wrap gap-8 border-t border-emerald-500/16 pt-5.5">
